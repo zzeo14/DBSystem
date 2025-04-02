@@ -1,0 +1,7 @@
+create table
+tree
+3
+id		char(5),
+height		char(3),
+max_child	char(2),
+s_k {id,max_child}

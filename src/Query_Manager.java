@@ -2,12 +2,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 
 public class Query_Manager {
-    public static void query(BufferedReader br, String sql_query) throws IOException {
+    public static String query(BufferedReader br) throws IOException {
         String line;
+        String sql_query = "";
+        String first_column = "";
 
         if((line = br.readLine()) != null){
-            if(line.equalsIgnoreCase("create table")){ // table 선언문인지 
-                sql_query += "create table";
+            if(line.equalsIgnoreCase("create table")){ // table 선언문인지
+                System.out.println("Here is Create Table !!");
+                sql_query = "create table";
                 if((line = br.readLine()) != null) {
                     String table_name = line; // table 이름값 저장
                     sql_query += " " + table_name + "(";
@@ -28,6 +31,7 @@ public class Query_Manager {
                                 }
                                 String column = query[0];
                                 String type = query[1];
+                                if(i == 0) first_column = column;
 
                                 if(i < iteration - 1 && type.charAt(type.length() - 1) != ',') {
                                     inv_q();
@@ -42,11 +46,12 @@ public class Query_Manager {
                                     inv_q();
                                 }
                                 else{
-
+                                    sql_query += "primary key (" + pk[1].substring(1, pk[1].length() - 1) + "))";
+                                    return sql_query;
                                 }
                             }
                             else { // 첫 번째 column을 자동으로 search key로 설정
-
+                                sql_query += "primary key (" + first_column + "))";
                             }
                         }
                         else inv_q();
@@ -67,6 +72,7 @@ public class Query_Manager {
             else inv_q();
         }
         else inv_q();
+        return sql_query;
     }
 
     private static void inv_q(){

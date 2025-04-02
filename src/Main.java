@@ -31,8 +31,8 @@ public class Main {
                     try(FileReader fr = new FileReader(query_file)){
                         BufferedReader br = new BufferedReader(fr);
 
-                        String sql_query = "";
-                        Query_Manager.query(br, sql_query);
+                        String sql_query = Query_Manager.query(br);
+                        System.out.println(sql_query);
                     }
                     catch (IOException e){
                         e.printStackTrace();
