@@ -13,7 +13,8 @@ public class Query_Manager {
                     sql_query += " " + table_name + "(";
                     if ((line = br.readLine()) != null) {
                         if(line.length() == 1 && line.charAt(0) >= '0' && line.charAt(0) <= '9') { // 정확히 숫자 하나만 있어야 함
-                            for(int i = 0 ; i < line.charAt(0) - '0' ; i++){
+                            int iteration = line.charAt(0) - '0';
+                            for(int i = 0 ; i < iteration ; i++){
                                 line = br.readLine();
                                 if(line == null) {
                                     inv_q();
@@ -28,6 +29,11 @@ public class Query_Manager {
                                 String column = query[0];
                                 String type = query[1];
 
+                                if(i < iteration - 1 && type.charAt(type.length() - 1) != ',') {
+                                    inv_q();
+                                    break;
+                                }
+
                                 sql_query += column + " " + type;
                             }
                             if((line = br.readLine()) != null){
@@ -36,7 +42,7 @@ public class Query_Manager {
                                     inv_q();
                                 }
                                 else{
-                                    
+
                                 }
                             }
                             else { // 첫 번째 column을 자동으로 search key로 설정
