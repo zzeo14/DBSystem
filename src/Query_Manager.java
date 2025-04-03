@@ -10,14 +10,18 @@ public class Query_Manager {
         String first_column = "";
 
         if((line = br.readLine()) != null){
-            if(line.equalsIgnoreCase("create table")){ // table 선언문인지
+            // query문 parsing
+            if(line.equalsIgnoreCase("create table")){ // table 선언문
                 sql_query = "create table";
+                Metadata metadata = new Metadata();
+
                 if((line = br.readLine()) != null) {
                     String table_name = line; // table 이름값 저장
                     sql_query += " " + table_name + "("; // mysql query update
                     if ((line = br.readLine()) != null) {
                         if(line.length() == 1 && line.charAt(0) >= '0' && line.charAt(0) <= '9') { // 정확히 숫자 하나만 있어야 함
                             int iteration = line.charAt(0) - '0';
+                            metadata.setField_num(iteration);
                             for(int i = 0 ; i < iteration ; i++){
                                 line = br.readLine();
                                 if(line == null) {
@@ -32,7 +36,14 @@ public class Query_Manager {
                                 }
                                 String column = query[0];
                                 String type = query[1];
-                                if(i == 0) first_column = column;
+                                if(i == 0) first_column = column; // primary key 자동설정
+
+                                Fields field = new Fields();
+                                field.setField_name(column);
+                                field.setField_order(i);
+                                field.setField_type(type);
+
+                                metadata.AddField(field);
 
                                 if(i < iteration - 1 && type.charAt(type.length() - 1) != ',') {
                                     inv_q();
