@@ -19,7 +19,7 @@ public class Main {
 
             switch (option) {
                 case "1":
-                    System.out.print("\nEnter Query path >> ");
+                    System.out.print("\nEnter Query file path >> ");
                     String path = sc.nextLine();
                     File query_file = new File(path);
 

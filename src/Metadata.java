@@ -1,7 +1,17 @@
+import java.util.List;
+import java.util.ArrayList;
+
 public class Metadata {
-    private byte[] field_name = new byte[8];
-    private byte[] field_type = new byte[8];
-    private byte[] field_num = new byte[4];
-    private byte[] field_size = new byte[4];
-    private byte[] field_order = new byte[4];
+    private List<Fields> fields = new ArrayList<>();
+
+    public void AddField(Fields field){
+        fields.add(field);
+    }
+    public void AddFields(List<Fields> fields){
+        this.fields.addAll(fields);
+    }
+
+    public List<Fields> GetFields(){
+        return fields;
+    }
 }
