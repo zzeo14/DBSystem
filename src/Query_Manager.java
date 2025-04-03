@@ -9,8 +9,10 @@ public class Query_Manager {
         String sql_query = "";
         String first_column = "";
 
+        File_Manager file_manager = new File_Manager();
+
         if((line = br.readLine()) != null){
-            // query문 parsing
+            // query문 parsing 진행 후 File_Manager에게 전달
             if(line.equalsIgnoreCase("create table")){ // table 선언문
                 sql_query = "create table";
                 Metadata metadata = new Metadata();
@@ -34,15 +36,11 @@ public class Query_Manager {
                                     inv_q();
                                     break;
                                 }
-                                String column = query[0];
+                                String field_name = query[0];
                                 String type = query[1];
-                                if(i == 0) first_column = column; // primary key 자동설정
+                                if(i == 0) first_column = field_name; // primary key 자동설정
 
-                                Fields field = new Fields();
-                                field.setField_name(column);
-                                field.setField_order(i);
-                                field.setField_type(type);
-
+                                Fields field = new Fields(field_name, type, i);
                                 metadata.AddField(field);
 
                                 if(i < iteration - 1 && type.charAt(type.length() - 1) != ',') {
@@ -50,19 +48,13 @@ public class Query_Manager {
                                     break;
                                 }
 
-                                sql_query += column + " " + type;
+                                sql_query += field_name + " " + type;
                             }
                             if((line = br.readLine()) != null){
                                 String[] pk = line.split("\\s+");
-                                if (!pk[0].equalsIgnoreCase("s_k")){
-                                    inv_q();
-                                }
-                                else{
-                                    sql_query += "primary key (" + pk[1].substring(1, pk[1].length() - 1) + "));";
-                                    //return sql_query;
-                                }
-                            }
-                            else { // 첫 번째 column을 자동으로 search key로 설정
+                                if (!pk[0].equalsIgnoreCase("s_k")) inv_q();
+                                else sql_query += "primary key (" + pk[1].substring(1, pk[1].length() - 1) + "));";
+                            } else { // 첫 번째 column을 자동으로 search key로 설정
                                 sql_query += "primary key (" + first_column + "));";
                             }
 
@@ -70,38 +62,24 @@ public class Query_Manager {
                             String file_path = sc.nextLine();
 
                             String path;
-                            if(file_path.charAt(file_path.length() - 1) == '/'){
-                                path = file_path + table_name + "txt";
+                            if(file_path.charAt(file_path.length() - 1) == '\\'){
+                                path = file_path + table_name + ".txt";
                             }
                             else {
-                                path = file_path + "/" + table_name + ".txt";
+                                path = file_path + "\\" + table_name + ".txt";
                             }
-                            File file = new File(path);
-
-                            if(file.createNewFile()){
-                                FileWriter fileWriter = new FileWriter(file);
-                                BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-
-                                bufferedWriter.write(sql_query);
-                                bufferedWriter.newLine();
-                            }
-                            else {
-                                System.out.println("File already exists!");
-                            }
-                        }
-                        else inv_q();
-                    }
-                    else inv_q();
-                }
-                else inv_q();
+                            file_manager.create_file(path, table_name, metadata);
+                        } else inv_q();
+                    } else inv_q();
+                } else inv_q();
             }
-            else if(line.equalsIgnoreCase("insert into")){
+            else if(line.equalsIgnoreCase("insert into")){ // record 삽입
 
             }
-            else if(line.equalsIgnoreCase("find record")){
+            else if(line.equalsIgnoreCase("find record")){ // record 찾기
 
             }
-            else if(line.equalsIgnoreCase("find field")){
+            else if(line.equalsIgnoreCase("find field")){ // field 찾기
 
             }
             else inv_q();

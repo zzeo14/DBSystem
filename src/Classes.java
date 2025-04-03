@@ -16,6 +16,14 @@ class Fields {
     private byte[] field_type = new byte[8];
     private byte field_order;
 
+    public Fields(){}
+
+    public Fields(String field_name, String field_type, int field_order) {
+        this.field_name = field_name.getBytes();
+        this.field_type = field_type.getBytes();
+        this.field_order = (byte)field_order;
+    }
+
     public byte[] getField_name() {
         return field_name;
     }
