@@ -1,4 +1,11 @@
-public class Fields {
+import java.util.ArrayList;
+import java.util.List;
+
+class Block {
+    private Record[] records;
+}
+
+class Fields {
     private byte[] field_name = new byte[8];
     private byte[] field_type = new byte[8];
     private byte[] field_num = new byte[4];
@@ -35,5 +42,32 @@ public class Fields {
     }
     public void setField_order(byte[] field_order) {
         this.field_order = field_order;
+    }
+}
+
+class Metadata {
+    private List<Fields> fields = new ArrayList<>();
+
+    public void AddField(Fields field){
+        fields.add(field);
+    }
+    public void AddFields(List<Fields> fields){
+        this.fields.addAll(fields);
+    }
+
+    public List<Fields> GetFields(){
+        return fields;
+    }
+}
+
+class Record {
+    private byte bitmap;
+    private byte[][] fields;
+    private int next_pointer;
+
+    public Record(byte bitmap, byte[][] fields, int next_pointer, int field_num){
+        this.bitmap = bitmap;
+        this.fields = fields;
+        this.next_pointer = next_pointer;
     }
 }
