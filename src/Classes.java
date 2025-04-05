@@ -1,15 +1,5 @@
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-
-class Block {
-    private Record[] records;
-}
-
-class Header_Block {
-    private int first_block;
-    private Metadata metadata;
-}
 
 class Fields {
     private byte[] field_name = new byte[16];

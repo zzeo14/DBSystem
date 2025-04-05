@@ -37,7 +37,7 @@ public class File_Manager {
         }
     }
 
-    public void insert_data(){
+    public void insert_record(){
 
     }
 

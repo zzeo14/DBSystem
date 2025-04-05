@@ -67,7 +67,9 @@ public class Query_Manager {
                 } else inv_q();
             }
             else if(line.equalsIgnoreCase("insert into")){ // record 삽입
-
+                sql_query = "insert into";
+                byte bitmap = 0;
+                int pointer = 0;
             }
             else if(line.equalsIgnoreCase("find record")){ // record 찾기
 

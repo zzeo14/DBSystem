@@ -5,6 +5,7 @@ import java.sql.Statement;
 
 public class MySQL_Manager {
     public void execute(String query, String type){
+        // 기본값 설정 //
         String url = "jdbc:mysql://localhost:3306/DBSystem";
         String user = "root";
         String password = "doslTkfkd12!";
@@ -12,6 +13,7 @@ public class MySQL_Manager {
         Connection conn = null;
         Statement stmt = null;
 
+        // connection, statement 할당 //
         try{
             Class.forName("com.mysql.cj.jdbc.Driver");
             conn = DriverManager.getConnection(url, user, password);
@@ -29,6 +31,7 @@ public class MySQL_Manager {
             e.printStackTrace();
         }
 
+        // 해당하는 sql query 실행 //
         try{
             switch (type){
                 case "create": {
@@ -53,8 +56,5 @@ public class MySQL_Manager {
             System.out.println("sql query 에러");
             e.printStackTrace();
         }
-    }
-    private void create(Statement stmt, String create_query) throws SQLException {
-
     }
 }
