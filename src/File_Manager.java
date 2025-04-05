@@ -15,7 +15,7 @@ public class File_Manager {
             File file = new File(file_name + ".txt");
 
             if (!file.createNewFile()) {
-                System.out.println("File already exists!");
+                System.out.println("파일이 이미 존재함");
                 return;
             }
 
@@ -37,7 +37,13 @@ public class File_Manager {
         }
     }
 
-    public void insert_record(){
+    public void insert_record(List<Record> records, String file_name){
+        byte[] header_block = new byte[Block_Size];
+        header_block = io.read(file_name + ".txt", 0);
+
+        for(int i = 0 ; i < records.size() ; i++){
+
+        }
 
     }
 

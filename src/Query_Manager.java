@@ -1,4 +1,6 @@
 import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 import java.io.BufferedReader;
 
@@ -68,8 +70,54 @@ public class Query_Manager {
             }
             else if(line.equalsIgnoreCase("insert into")){ // record 삽입
                 sql_query = "insert into";
-                byte bitmap = 0;
+                List<Record> records = new ArrayList<>();
                 int pointer = 0;
+
+                line = br.readLine();
+                if(line == null) {
+                    inv_q();
+                    return;
+                }
+                String table_name = line;
+                sql_query += " " + table_name + " values(";
+                line = br.readLine();
+                if(line == null) { inv_q(); return; }
+                for(int i = 0 ; i < line.length() ; i++) {
+                    if(line.charAt(i) < '0' || line.charAt(i) > '9') { inv_q(); return; }
+                }
+                int iteration = Integer.parseInt(line);
+                for(int i = 0 ; i < iteration ; i++){ // 각 record에 대해 수행
+                    Record record = new Record();
+                    line = br.readLine();
+                    if(line == null) { inv_q(); return; }
+                    String temp_query = sql_query;
+
+                    String[] query = line.split(";"); // 각 column을 semi colon으로 분리
+                    List<byte[]> element = new ArrayList<>();
+
+                    byte bitmap = 0;
+                    for(int j = 0 ; j < query.length ; j++) {
+                        if(query[j].equalsIgnoreCase("null") || query[j].equalsIgnoreCase("null,")){ // null은 record에 field를 추가하지 않고 bitmap을 바꿈
+                            bitmap = (byte)(bitmap | (1 << (7 - j)));
+                            temp_query += "null";
+                        }
+                        else {
+                            element.add(query[j].getBytes());
+                            if(query[j].charAt(query[j].length() - 1) != ',' ) temp_query += "'" + query[j] + "'";
+                            else temp_query += "'" + query[j].substring(0, query[j].length() - 1) + "'";
+                        }
+
+                        if(j == query.length - 1) temp_query += ");";
+                        else temp_query += ",";
+                    }
+                    record.setFields(element);
+                    record.setBitmap(bitmap);
+
+                    records.add(record);
+                    //print_bit(bitmap);
+                    //System.out.println(temp_query);
+                }
+                file_manager.insert_record(records, table_name);
             }
             else if(line.equalsIgnoreCase("find record")){ // record 찾기
 
@@ -84,5 +132,12 @@ public class Query_Manager {
 
     private static void inv_q(){
         System.out.println("Invalid Query");
+    }
+
+    private void print_bit(byte b){
+        for (int i = 7; i >= 0; i--) {
+            System.out.print((b >> i & 1));
+        }
+        System.out.println();
     }
 }

@@ -11,14 +11,19 @@ public class IO_Manager {
         raf.close();
     }
 
-    public byte[] read(String path, long offset) throws IOException {
-        RandomAccessFile file = new RandomAccessFile(path, "r");
-
-        file.seek(offset);
+    public byte[] read(String path, long offset) {
         byte[] ret_bytes = new byte[File_Manager.getBlock_Size()];
-        file.read(ret_bytes);
+        try{
+            RandomAccessFile file = new RandomAccessFile(path, "r");
 
-        file.close();
+            file.seek(offset);
+            file.read(ret_bytes);
+
+            file.close();
+        }
+        catch (IOException e){
+            System.out.println("IO Exception 발생");
+        }
         return ret_bytes;
     }
 }

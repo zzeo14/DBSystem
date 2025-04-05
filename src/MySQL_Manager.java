@@ -5,6 +5,8 @@ import java.sql.Statement;
 
 public class MySQL_Manager {
     public void execute(String query, String type){
+        System.out.println(query);
+
         // 기본값 설정 //
         String url = "jdbc:mysql://localhost:3306/DBSystem";
         String user = "root";

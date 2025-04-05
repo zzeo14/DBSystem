@@ -48,12 +48,22 @@ class Metadata {
 
 class Record {
     private byte bitmap;
-    private byte[][] fields;
+    private List<byte[]> fields;
     private int next_pointer;
 
-    public Record(byte bitmap, byte[][] fields, int next_pointer, int field_num){
+    public Record() {}
+    public Record(byte bitmap, List<byte[]> fields, int next_pointer, int field_num){
         this.bitmap = bitmap;
         this.fields = fields;
         this.next_pointer = next_pointer;
     }
+
+    public byte getBitmap() { return bitmap; }
+    public List<byte[]> getFields() { return fields; }
+    public int getNext_pointer() { return next_pointer; }
+
+    public void setBitmap(byte bitmap) { this.bitmap = bitmap; }
+    public void addField(byte[] field) { this.fields.add(field); }
+    public void setFields(List<byte[]> fields) { this.fields = fields; }
+    public void setNext_pointer(int next_pointer) { this.next_pointer = next_pointer; }
 }
