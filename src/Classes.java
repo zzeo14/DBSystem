@@ -6,13 +6,13 @@ class Block {
     private Record[] records;
 }
 
-class Header_Block extends Block{
+class Header_Block {
     private int first_block;
     private Metadata metadata;
 }
 
 class Fields {
-    private byte[] field_name = new byte[8];
+    private byte[] field_name = new byte[16];
     private byte[] field_type = new byte[8];
     private byte field_order;
 
@@ -51,7 +51,7 @@ class Metadata {
     public void setField_num(int field_num) { this.field_num = (byte)field_num; }
     public byte getField_num() { return field_num; }
 
-    public List<Fields> GetFields(){
+    public List<Fields> getFields(){
         return fields;
     }
 }
