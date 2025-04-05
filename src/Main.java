@@ -1,11 +1,17 @@
 import java.io.BufferedReader;
+import java.sql.Statement;
 import java.util.Scanner;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
 public class Main {
     public static void main(String[] args) {
+
+        Query_Manager qm = new Query_Manager();
 
         System.out.println("This is the DBSystem program.");
         while(true) {
@@ -31,8 +37,7 @@ public class Main {
                     try(FileReader fr = new FileReader(query_file)){
                         BufferedReader br = new BufferedReader(fr);
 
-                        String sql_query = Query_Manager.query(br);
-                        System.out.println(sql_query);
+                        qm.query(br);
                     }
                     catch (IOException e){
                         e.printStackTrace();

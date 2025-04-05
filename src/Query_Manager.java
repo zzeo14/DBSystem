@@ -3,7 +3,9 @@ import java.util.Scanner;
 import java.io.BufferedReader;
 
 public class Query_Manager {
-    public static String query(BufferedReader br) throws IOException {
+    private MySQL_Manager sql_manager = new MySQL_Manager();
+
+    public void query(BufferedReader br) throws IOException {
         Scanner sc = new Scanner(System.in);
         String line;
         String sql_query = "";
@@ -57,18 +59,9 @@ public class Query_Manager {
                             } else { // 첫 번째 column을 자동으로 search key로 설정
                                 sql_query += "primary key (" + first_column + "));";
                             }
+                            file_manager.create_file(table_name, metadata);
 
-                            System.out.print("\nEnter new file path >>");
-                            String file_path = sc.nextLine();
-
-                            String path;
-                            if(file_path.charAt(file_path.length() - 1) == '\\'){
-                                path = file_path + table_name + ".txt";
-                            }
-                            else {
-                                path = file_path + "\\" + table_name + ".txt";
-                            }
-                            file_manager.create_file(path, table_name, metadata);
+                            sql_manager.execute(sql_query, "create");
                         } else inv_q();
                     } else inv_q();
                 } else inv_q();
@@ -85,7 +78,6 @@ public class Query_Manager {
             else inv_q();
         }
         else inv_q();
-        return sql_query;
     }
 
     private static void inv_q(){

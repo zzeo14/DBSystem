@@ -8,11 +8,11 @@ public class File_Manager {
     private IO_Manager io = new IO_Manager();
     private byte[] block = new byte[Block_Size];
 
-    public void create_file(String path, String file_name, Metadata metadata) {
+    public void create_file(String file_name, Metadata metadata) {
         for (int i = 0; i < Block_Size; i++) {block[i] = 0;} // block을 0으로 초기화
         
         try {
-            File file = new File(path);
+            File file = new File(file_name + ".txt");
 
             if (!file.createNewFile()) {
                 System.out.println("File already exists!");
@@ -30,7 +30,7 @@ public class File_Manager {
                 offset += 1;
             }
 
-            io.write(block, path, 0);
+            io.write(block, file_name + ".txt", 0);
         }
         catch (IOException e){
             System.out.println(e);
@@ -40,4 +40,6 @@ public class File_Manager {
     public void insert_data(){
 
     }
+
+    public static int getBlock_Size(){ return Block_Size; }
 }

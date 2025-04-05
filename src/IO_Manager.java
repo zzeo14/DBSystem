@@ -10,4 +10,15 @@ public class IO_Manager {
 
         raf.close();
     }
+
+    public byte[] read(String path, long offset) throws IOException {
+        RandomAccessFile file = new RandomAccessFile(path, "r");
+
+        file.seek(offset);
+        byte[] ret_bytes = new byte[File_Manager.getBlock_Size()];
+        file.read(ret_bytes);
+
+        file.close();
+        return ret_bytes;
+    }
 }
