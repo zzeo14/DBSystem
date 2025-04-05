@@ -44,7 +44,7 @@ public class Query_Manager {
                                 String type = query[1];
                                 if(i == 0) first_column = field_name; // primary key 자동설정
 
-                                Fields field = new Fields(field_name, type, i);
+                                Fields field = new Fields(field_name, type, i + 1); // field 이름, 자료형, 순서가 저장된 field 변수 생성
                                 metadata.AddField(field);
 
                                 if(i < iteration - 1 && type.charAt(type.length() - 1) != ',') {

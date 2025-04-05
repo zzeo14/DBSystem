@@ -20,7 +20,8 @@ public class File_Manager {
             }
 
             List<Fields> fields = metadata.getFields();
-            int offset = 4; // pointer(0~3바이트) 이후부터 저장
+            block[4] = (byte)fields.size(); // field 개수 저장
+            int offset = 5; // pointer(0~3), field 개수(4) 이후부터 저장
             for(int i = 0 ; i < fields.size() ; i++){
                 System.arraycopy(fields.get(i).getField_name(), 0, block, offset, fields.get(i).getField_name().length);
                 offset += 16;
@@ -40,12 +41,27 @@ public class File_Manager {
     public void insert_record(List<Record> records, String file_name){
         byte[] header_block = new byte[Block_Size];
         header_block = io.read(file_name + ".txt", 0);
+        int offset = 4 + 16;
 
         for(int i = 0 ; i < records.size() ; i++){
+            Record record = records.get(i);
+
+            List<byte[]> fields = record.getFields();
+            byte bitmap = record.getBitmap();
+
+            int field_cnt = fields.size();
+            for(int j = 0 ; j < 8 ; j++){
+                if((bitmap & 1 << (8 - j)) != 0) field_cnt++;
+            }
+
+            if(field_cnt != header_block[4]){ inv_q(i); continue; }
 
         }
 
     }
 
     public static int getBlock_Size(){ return Block_Size; }
+    public void inv_q(int i) {
+        System.out.println("Invalid query at line " + Integer.toString(4 + i));
+    }
 }
