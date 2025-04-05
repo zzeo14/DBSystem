@@ -10,7 +10,7 @@ public class MySQL_Manager {
         // 기본값 설정 //
         String url = "jdbc:mysql://localhost:3306/DBSystem";
         String user = "root";
-        String password = SQL_password.password;
+        String password = SQL_password.password; // 비밀번호 파일에서 불러옴
 
         Connection conn = null;
         Statement stmt = null;
