@@ -10,7 +10,7 @@ public class MySQL_Manager {
         // 기본값 설정 //
         String url = "jdbc:mysql://localhost:3306/DBSystem";
         String user = "root";
-        String password = "doslTkfkd12!";
+        String password = SQL_password.password;
 
         Connection conn = null;
         Statement stmt = null;
