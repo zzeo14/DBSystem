@@ -59,7 +59,7 @@ public class File_Manager {
         byte[] field_orders = new byte[field_num]; // field 개수만큼 order변수 생성
         int order_cnt = 0;
 
-        Pattern pattern = Pattern.compile("char\\((\\d+)\\)");
+        Pattern pattern = Pattern.compile("char\\((\\d+)\\)"); // char(124) -> 124 처럼 char () 내부의 integer 뽑기
         // 헤더블록 읽기
         while(offset < Block_Size){
             // field name 읽기
@@ -93,44 +93,67 @@ public class File_Manager {
         }
 
         offset = 0;
+        // 각 record에 대해 수행
         for(int i = 0 ; i < records.size() ; i++){
+            int record_size = 1 + 4; // 1 bit : bitmap size, 4 bit : pointer size
             Record record = records.get(i);
 
             List<byte[]> fields = record.getFields();
             byte bitmap = record.getBitmap();
 
+            // search key(첫 번째 field)가 null이면 에러처리 //
+            if((bitmap & 1 << 7) != 0) { inv_q(i); continue; }
+
             int field_cnt = fields.size();
-            for(int j = 0 ; j < 8 ; j++){
+            for(int j = 0 ; j < 8 && j < field_names.size() ; j++){
                 if((bitmap & 1 << (7 - j)) != 0) field_cnt++;
+                else record_size += field_lengths[j];
             }
             if(field_cnt != field_num){ inv_q(i); continue; } // field의 개수가 header block 정보와 다르면 에러처리
 
             // field type size가 안 맞으면 에러처리 //
-            System.out.println("i: " + i);
-            System.out.println("bitmap: " + bitmap);
+            //System.out.println("line: " + (i + 4));
             int null_cnt = 0;
             for(int j = 0 ; j < field_cnt ; j++){
                 if((bitmap & 1 << (7 - j)) != 0) { null_cnt++; continue; }
                 if(fields.get(j - null_cnt).length != field_lengths[j]) { inv_q(i); continue; }
             }
-
-            block[offset] = record.getBitmap();
-
-            if(io.is_header_pointer_filled(file_name + ".txt")){ // 블록이 원래 존재하는 경우
-                System.out.println("헤어 채워져있음");
+            
+            // block 채우고 쓰기
+            //System.out.println("record size: " + record_size);
+            if(record_size + offset >= Block_Size){ // record를 block에 넣을 수 없으면 block write 후 새로운 block 쓰기
+                io.write_block(block, file_name + ".txt");
+                block_initialize();
+                offset = 0;
             }
-            else { // 블록이 처음 채워지는 경우 겨우
-                System.out.println("헤더 비워져있음");
+            // block에 공간 남아있으면 record 삽입하기
+            block[offset++] = bitmap;                               // 1 : bitmap정보 삽입
+
+            for(int j = 0 ; j < field_cnt ; j++){                   // 2 : field 정보 삽입
+                for(int k = 0 ; k < fields.get(j).length ; k++){
+                    block[offset++] = fields.get(j)[k];
+                }
+            }
+
+            for(int j = 0 ; j < 4; j++){                            // 3 : pointer 정보 삽입
+                block[offset++] = (byte)0xFF;
+            }
+
+            int before_record_offset = offset - record_size - 4;
+            for(int j = 0 ; j < 4 ; j++){
+                block[before_record_offset++] = (byte)0xFF;
             }
         }
 
     }
 
     public static int getBlock_Size(){ return Block_Size; }
+    
     public void inv_q(int i) {
         System.out.println("Invalid query at line " + Integer.toString(4 + i));
     }
-    private void intial_block(){
+    
+    private void block_initialize(){
         for(int i = 0 ; i < Block_Size ; i++){
             block[i] = 0;
         }
