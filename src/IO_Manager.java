@@ -107,13 +107,13 @@ public class IO_Manager {
             for(int offset = 0 ; ; offset += File_Manager.getBlock_Size()){
                 file.seek(offset);
                 file.read(block);
+                //TODO : file의 마지막 부분 catch하기
             }
         }
         catch (IOException e){
             System.out.println("IOException 발생");
             e.printStackTrace();
         }
-
 
         return pointers;
     }

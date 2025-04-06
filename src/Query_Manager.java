@@ -116,10 +116,10 @@ public class Query_Manager {
                 file_manager.insert_record(records, table_name);
             }
             else if(line.equalsIgnoreCase("find record")){ // record 찾기
-
+                // TODO: record 찾기 코드 
             }
             else if(line.equalsIgnoreCase("find field")){ // field 찾기
-
+                // TODO : field 찾기 코드
             }
             else inv_q();
         }

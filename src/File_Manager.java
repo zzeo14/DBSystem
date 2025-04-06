@@ -144,6 +144,10 @@ public class File_Manager {
         }
 
         List<byte[]> pointers = io.find_next_pointer(records, file_name + ".txt");
+
+        //TODO : records List에 있는 record들 정렬하기
+
+
         /* //출력해보기 코드
         for(int i = 0 ; i < records_size - error_records.size(); i++){
             Record record = records.get(i);
