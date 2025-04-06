@@ -52,15 +52,10 @@ public class Query_Manager {
                                     break;
                                 }
 
-                                sql_query += field_name + " " + type;
+                                if(i < iteration - 1) sql_query += field_name + " " + type;
+                                else sql_query += field_name + " " + type.substring(0, type.length() - 1);
                             }
-                            if((line = br.readLine()) != null){
-                                String[] pk = line.split("\\s+");
-                                if (!pk[0].equalsIgnoreCase("s_k")) inv_q();
-                                else sql_query += "primary key (" + pk[1].substring(1, pk[1].length() - 1) + "));";
-                            } else { // 첫 번째 column을 자동으로 search key로 설정
-                                sql_query += "primary key (" + first_column + "));";
-                            }
+                            sql_query += ");";
                             file_manager.create_file(table_name, metadata);
 
                             sql_manager.execute(sql_query, "create");
