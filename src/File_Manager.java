@@ -1,7 +1,9 @@
-import java.io.RandomAccessFile;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.io.IOException;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 public class File_Manager {
     private static final int Block_Size = 512;
@@ -38,11 +40,59 @@ public class File_Manager {
         }
     }
 
+    // records 파라미터는 아직 에러 감지 안 한 상태
+    //
     public void insert_record(List<Record> records, String file_name){
         byte[] header_block = new byte[Block_Size];
         header_block = io.read(file_name + ".txt", 0);
-        int offset = 4 + 16;
+        int offset = 4;
+        if(!io.is_file_exist(file_name + ".txt")){
+            System.out.println(file_name + " 파일이 존재하지 않음");
+            return;
+        }
 
+        int field_num = header_block[offset]; // field 개수
+        offset++;
+
+        List<String> field_names = new ArrayList<>();
+        int[] field_lengths = new int[field_num];
+        byte[] field_orders = new byte[field_num]; // field 개수만큼 order변수 생성
+        int order_cnt = 0;
+
+        Pattern pattern = Pattern.compile("char\\((\\d+)\\)");
+        // 헤더블록 읽기
+        while(offset < Block_Size){
+            // field name 읽기
+            String field_name = "";
+            for(int i = offset; i < offset + 16 ; i++){
+                if(header_block[i] != 0) field_name += (char)header_block[i];
+            }
+            if(field_name.equals("")) break;
+            offset += 16;
+            
+            // field type 읽기
+            String field_type = "";
+            int length = 0;
+            for(int i = offset ; i < offset + 8 ; i++){
+                if(header_block[i] != 0  && (char)header_block[i] != ',') field_type += (char)header_block[i];
+            }
+            if(field_type.equals("")) break;
+            Matcher matcher = pattern.matcher(field_type);
+            if(matcher.find()){
+                length = Integer.parseInt(matcher.group(1));
+            }
+            offset += 8;
+            
+            // field order 읽기
+            byte field_order = header_block[offset];
+            offset++;
+
+            field_names.add(field_name);
+            field_lengths[order_cnt] = length;
+            field_orders[order_cnt++] = field_order;
+        }
+
+        offset = 0;
         for(int i = 0 ; i < records.size() ; i++){
             Record record = records.get(i);
 
@@ -51,11 +101,27 @@ public class File_Manager {
 
             int field_cnt = fields.size();
             for(int j = 0 ; j < 8 ; j++){
-                if((bitmap & 1 << (8 - j)) != 0) field_cnt++;
+                if((bitmap & 1 << (7 - j)) != 0) field_cnt++;
+            }
+            if(field_cnt != field_num){ inv_q(i); continue; } // field의 개수가 header block 정보와 다르면 에러처리
+
+            // field type size가 안 맞으면 에러처리 //
+            System.out.println("i: " + i);
+            System.out.println("bitmap: " + bitmap);
+            int null_cnt = 0;
+            for(int j = 0 ; j < field_cnt ; j++){
+                if((bitmap & 1 << (7 - j)) != 0) { null_cnt++; continue; }
+                if(fields.get(j - null_cnt).length != field_lengths[j]) { inv_q(i); continue; }
             }
 
-            if(field_cnt != header_block[4]){ inv_q(i); continue; }
+            block[offset] = record.getBitmap();
 
+            if(io.is_header_pointer_filled(file_name + ".txt")){ // 블록이 원래 존재하는 경우
+                System.out.println("헤어 채워져있음");
+            }
+            else { // 블록이 처음 채워지는 경우 겨우
+                System.out.println("헤더 비워져있음");
+            }
         }
 
     }
@@ -63,5 +129,10 @@ public class File_Manager {
     public static int getBlock_Size(){ return Block_Size; }
     public void inv_q(int i) {
         System.out.println("Invalid query at line " + Integer.toString(4 + i));
+    }
+    private void intial_block(){
+        for(int i = 0 ; i < Block_Size ; i++){
+            block[i] = 0;
+        }
     }
 }
