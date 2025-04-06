@@ -1,6 +1,8 @@
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.List;
 
 public class IO_Manager {
 
@@ -94,5 +96,25 @@ public class IO_Manager {
             e.printStackTrace();
             return false;
         }
+    }
+
+    public List<byte[]> find_next_pointer(List<Record> records, String path) {
+        List<byte[]> pointers = new ArrayList<>();
+        byte[] block = new byte[File_Manager.getBlock_Size()];
+
+        try{
+            RandomAccessFile file = new RandomAccessFile(path, "rw");
+            for(int offset = 0 ; ; offset += File_Manager.getBlock_Size()){
+                file.seek(offset);
+                file.read(block);
+            }
+        }
+        catch (IOException e){
+            System.out.println("IOException 발생");
+            e.printStackTrace();
+        }
+
+
+        return pointers;
     }
 }

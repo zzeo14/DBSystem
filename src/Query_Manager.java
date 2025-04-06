@@ -97,9 +97,12 @@ public class Query_Manager {
                             temp_query += "null";
                         }
                         else {
-                            element.add(query[j].getBytes());
                             if(query[j].charAt(query[j].length() - 1) != ',' ) temp_query += "'" + query[j] + "'";
-                            else temp_query += "'" + query[j].substring(0, query[j].length() - 1) + "'";
+                            else {
+                                temp_query += "'" + query[j].substring(0, query[j].length() - 1) + "'";
+                                query[j] = query[j].substring(0, query[j].length() - 1);    // 끝에 comma 빼기
+                            }
+                            element.add(query[j].getBytes());
                         }
 
                         if(j == query.length - 1) temp_query += ");";
@@ -109,8 +112,6 @@ public class Query_Manager {
                     record.setBitmap(bitmap);
 
                     records.add(record);
-                    //print_bit(bitmap);
-                    //System.out.println(temp_query);
                 }
                 file_manager.insert_record(records, table_name);
             }
