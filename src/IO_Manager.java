@@ -106,7 +106,7 @@ public class IO_Manager {
             RandomAccessFile file = new RandomAccessFile(path, "rw");
             for(int offset = 0 ; ; offset += File_Manager.getBlock_Size()){
                 file.seek(offset);
-                file.read(block);
+                if(file.read(block) == -1) break;
                 //TODO : file의 마지막 부분 catch하기
             }
         }
