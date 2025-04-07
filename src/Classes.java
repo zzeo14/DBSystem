@@ -46,7 +46,7 @@ class Metadata {
     }
 }
 
-class Record {
+class Record implements Comparable<Record>{
     private byte bitmap;
     private List<byte[]> fields;
     private int next_pointer;
@@ -66,4 +66,30 @@ class Record {
     public void addField(byte[] field) { this.fields.add(field); }
     public void setFields(List<byte[]> fields) { this.fields = fields; }
     public void setNext_pointer(int next_pointer) { this.next_pointer = next_pointer; }
+
+    @Override
+    public int compareTo(Record other_record){
+        for(int i = 0 ; i < fields.get(0).length; i++){
+            if(this.fields.get(0)[i] == other_record.fields.get(0)[i]) continue;
+            else return this.fields.get(0)[i] - other_record.fields.get(0)[i];
+        }
+        return 1;
+    }
+}
+
+class Header_Content {
+    private int field_num;
+    private List<String> field_names = new ArrayList<>();
+    private int[] field_lengths;
+    private byte[] field_orders;
+
+    public void SetFieldNum(int field_num) { this.field_num = field_num; }
+    public void SetField_names(List<String> field_names) { this.field_names = field_names; }
+    public void SetField_lengths(int[] field_lengths) { this.field_lengths = field_lengths; }
+    public void SetField_orders(byte[] field_orders) { this.field_orders = field_orders; }
+
+    public int getFieldNum() { return field_num; }
+    public List<String> getFieldNames() { return field_names; }
+    public int[] getFieldLengths() { return field_lengths; }
+    public byte[] getFieldOrders() { return field_orders; }
 }
