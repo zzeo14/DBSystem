@@ -2,6 +2,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class IO_Manager {
@@ -98,16 +99,51 @@ public class IO_Manager {
         }
     }
 
-    public List<byte[]> find_next_pointer(List<Record> records, String path) {
+    public List<byte[]> find_next_pointer(List<Record> records, String path, int[] field_lengths) {
         List<byte[]> pointers = new ArrayList<>();
+        int search_key_size = field_lengths[0];
+
         byte[] block = new byte[File_Manager.getBlock_Size()];
+        byte[] current_search_key = new byte[search_key_size];
+        byte[] before_search_key = new byte[search_key_size];
+
+        int now_record_offset = 0;
+        int next_record_offset = 0;
 
         try{
             RandomAccessFile file = new RandomAccessFile(path, "rw");
-            for(int offset = 0 ; ; offset += File_Manager.getBlock_Size()){
-                file.seek(offset);
+            for(int n_th_block = 1 ; ; n_th_block ++){  // 0은 헤더블록이므로 제외
+                file.seek(n_th_block * File_Manager.getBlock_Size());
                 if(file.read(block) == -1) break;
-                //TODO : file의 마지막 부분 catch하기
+
+                int offset = 0;
+                byte bitmap = block[offset];
+                offset += 1;
+                if(offset == 1 && n_th_block == 1) { // before record가 없는 경우에는 record 가져오기까지만 하기
+                    System.arraycopy(block, offset, current_search_key, 0, search_key_size); // 해당 record의 search key 가져오기
+                    continue;
+                }
+                System.arraycopy(current_search_key, 0, before_search_key, 0, search_key_size);     // 현재 record search key를 before로 저장
+                System.arraycopy(block, offset, current_search_key, 0, search_key_size);                  // 해당 record의 search key 가져오기
+
+                // 각 record를 읽으면서 record가 들어갈 자리인지 확인
+                for(int n_th_record = 0 ; n_th_record < records.size() ; n_th_record++){
+                    Record record = records.get(n_th_record);
+                    byte[] field = record.getFields().getFirst();
+
+                    // 내 record가 들어갈 자리라면
+                    // 1: 내 다음 record의 search key가 file의 search key보다 작으면 내 record의 포인터는 내 다음 record
+                    // 2: 내 다음 record가 없거나, 내 다음 record의 search key가 file의 search key보다 크면 내 record의 포인터는 file의 current record
+                    if(Arrays.compare(field, before_search_key) > 0 && Arrays.compare(field, current_search_key) <= 0){
+                        if(record != records.getLast() && Arrays.compare(records.get(n_th_record + 1).getFields().getFirst(), current_search_key) <= 0){
+
+                        }
+                        else{
+
+                        }
+                    }
+                    else continue;
+                }
             }
         }
         catch (IOException e){
