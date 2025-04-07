@@ -132,14 +132,14 @@ public class IO_Manager {
                     byte[] field = record.getFields().getFirst();
 
                     // 내 record가 들어갈 자리라면
-                    // 1: 내 다음 record의 search key가 file의 search key보다 작으면 내 record의 포인터는 내 다음 record
-                    // 2: 내 다음 record가 없거나, 내 다음 record의 search key가 file의 search key보다 크면 내 record의 포인터는 file의 current record
+                    // TODO 1: 내 다음 record의 search key가 file의 search key보다 작으면 내 record의 포인터는 내 다음 record
+                    // TODO 2: 내 다음 record가 없거나, 내 다음 record의 search key가 file의 search key보다 크면 내 record의 포인터는 file의 current record
                     if(Arrays.compare(field, before_search_key) > 0 && Arrays.compare(field, current_search_key) <= 0){
                         if(record != records.getLast() && Arrays.compare(records.get(n_th_record + 1).getFields().getFirst(), current_search_key) <= 0){
-
+                            // TODO 1
                         }
                         else{
-
+                            // TODO 2
                         }
                     }
                     else continue;

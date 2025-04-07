@@ -108,7 +108,7 @@ public class File_Manager {
         Collections.sort(records);
 
         //TODO : pointer값 가져오기 (함수 내부에서 file에 저장되어 있는 record들의 포인터도 조정함)
-        //List<byte[]> pointers = io.find_next_pointer(records, file_name + ".txt");
+        List<byte[]> pointers = io.find_next_pointer(records, file_name, field_lengths);
 
         //TODO : record를 file에 write
         //byte[] block = new byte[Block_Size];
@@ -131,13 +131,7 @@ public class File_Manager {
     public static int getBlock_Size(){ return Block_Size; }
     
     public void inv_q(int i) {
-        System.out.println("Invalid query at line " + Integer.toString(4 + i));
-    }
-    
-    private void block_initialize(){
-        for(int i = 0 ; i < Block_Size ; i++){
-            block[i] = 0;
-        }
+        System.out.println("Invalid query at line " + (4 + i));
     }
 
     private Header_Content read_header(String file_name){
