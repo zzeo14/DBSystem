@@ -65,15 +65,17 @@ public class File_Manager {
             Record record = records.get(rec_num);
 
             List<byte[]> fields = record.getFields();
-            byte bitmap = record.getBitmap();
+            byte[] bitmap = record.getBitmap();
 
             // search key(첫 번째 field)가 null이면 에러처리 //
-            if ((bitmap & 1 << 7) != 0) { inv_q(rec_num); error_records.add(rec_num); continue record_loop; }
+            if ((bitmap[0] & 1 << 7) != 0) { inv_q(rec_num); error_records.add(rec_num); continue record_loop; }
 
             int field_cnt = fields.size();
-            for (int j = 0; j < Global_Variables.bitmap_bytes * 8 && j < field_names.size(); j++) {
-                if ((bitmap & 1 << (7 - j)) != 0) field_cnt++;
-                else record_size += field_lengths[j];
+            for(int k = 0 ; k < bitmap.length ; k++){
+                for (int j = 0; j < Global_Variables.bitmap_bytes && j < field_names.size(); j++) {
+                    if ((bitmap[k] & 1 << (7 - j)) != 0) field_cnt++;
+                    else record_size += field_lengths[j];
+                }
             }
             // record의 field 개수가 header block 정보와 다르면 에러처리 //
             if (field_cnt != field_num) {inv_q(rec_num); error_records.add(rec_num); continue record_loop; }
@@ -81,8 +83,11 @@ public class File_Manager {
             // field type size가 안 맞으면 에러처리 //
             int null_cnt = 0;
             System.out.println("line : " + (rec_num + 4) + ", fields_size : " + fields.size());
+
             for (int j = 0; j < fields.size(); j++) {
-                if ((bitmap & 1 << (7 - j)) != 0) {
+                int byte_index = j / 8;
+                int bit_index = j % 8;
+                if (((bitmap[byte_index] >> bit_index) & 1) != 0) {
                     null_cnt++;
                     continue;
                 }
