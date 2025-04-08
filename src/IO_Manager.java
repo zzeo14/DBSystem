@@ -253,7 +253,9 @@ public class IO_Manager {
                     int current_record_length = get_record_length(current_record_bitmap, field_lengths);
                     int current_record_pointer_offset = current_record_offset + current_record_length - Global_Variables.pointer_bytes;
 
+                    System.out.println("c_r_b: " + current_record_bitmap[0]);
                     System.out.println("current_record_pointer_offset: " + current_record_pointer_offset);
+                    System.out.println("c_b_n: " + cur_record_block_num + ", c_r_p_o: " + current_record_pointer_offset % Global_Variables.Block_Size);
                     byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
                     System.arraycopy(current_block, current_record_pointer_offset % Global_Variables.Block_Size, next_record_offset, 0, Global_Variables.pointer_bytes);
                     current_record_offset = ByteToInt(next_record_offset);
