@@ -99,12 +99,25 @@ public class IO_Manager {
     // record: 길이를 찾을 record                 //
     // field_lengths : file의 column들의 길이 배열 //
     public int get_record_length(Record record, int[] field_lengths) {
-        byte bitmap = record.getBitmap();
         int length = 0;
+
+        byte[] bitmap = record.getBitmap();
+        return get_record_length(bitmap, field_lengths);
+    }
+
+    public int get_record_length(byte[] bitmap, int[] field_lengths){
+        int length = 0;
+
         for(int i = 0 ; i < field_lengths.length ; i++){
-            if((bitmap & (byte)(1 << (Global_Variables.bitmap_bytes * 8 - 1 - i))) == 0){
-                length += field_lengths[i];
-            }
+            int byteIndex = i / 8;
+            int bitIndex = i % 8;
+
+            if(byteIndex >= bitmap.length) break;
+
+            // i / 8번째 byte의 왼쪽에서 i % 8번째 bit가 1인지 확인
+            boolean isNull = ((bitmap[byteIndex] >> bitIndex) & 1) == 1;
+
+            if(!isNull) length += field_lengths[i];
         }
         return length;
     }
@@ -138,49 +151,71 @@ public class IO_Manager {
         byte[] current_search_key = new byte[search_key_size];
         byte[] before_search_key = new byte[search_key_size];
 
-        int now_record_offset = 0;
-        int next_record_offset = 0;
-
         int last_offset = 0;
-        int offset = 0;
 
         try{
             RandomAccessFile file = new RandomAccessFile(path, "rw");
             int n_th_block = 1;
-            for(n_th_block = 1 ; ; n_th_block ++){  // 블록 단위로 read. 0은 헤더블록이므로 제외
+            for(n_th_block = 1 ; ; n_th_block++){  // 블록 단위로 read. 0은 헤더블록이므로 제외
                 file.seek(n_th_block * Global_Variables.Block_Size); // n번째 block 가져오기
                 if(file.read(block) == -1) break;
+                int current_record_offset = 0;
+                int before_record_offset = 0;
+                int my_record_offset = 0;
 
-                // record의 bitmap 가져오기
-                byte[] bitmap = new byte[Global_Variables.bitmap_bytes];
-                System.arraycopy(block, offset, bitmap, 0, Global_Variables.bitmap_bytes);
-                offset += Global_Variables.bitmap_bytes;
+                while(current_record_offset < Global_Variables.Block_Size){
+                    // record의 bitmap 가져오기
+                    byte[] current_record_bitmap = new byte[Global_Variables.bitmap_bytes];
+                    System.arraycopy(block, current_record_offset, current_record_bitmap, 0, Global_Variables.bitmap_bytes);
 
-                if(offset == Global_Variables.bitmap_bytes && n_th_block == 1) { // before record가 없는 경우에는 record 가져오기까지만 하기
-                    System.arraycopy(block, offset, current_search_key, 0, search_key_size); // 해당 record의 search key 가져오기
-                    continue;
-                }
-                System.arraycopy(current_search_key, 0, before_search_key, 0, search_key_size);     // 현재 record search key를 before로 저장
-                System.arraycopy(block, offset, current_search_key, 0, search_key_size);                  // 해당 record의 search key 가져오기
-
-                // 각 record를 읽으면서 record가 들어갈 자리인지 확인
-                for(int n_th_record = 0 ; n_th_record < records.size() ; n_th_record++){
-                    Record record = records.get(n_th_record); // n번째 record 가져오기
-                    byte[] field = record.getFields().getFirst();
-
-                    // 내 record가 들어갈 자리라면
-                    if(Arrays.compare(field, before_search_key) > 0 && Arrays.compare(field, current_search_key) <= 0){
-                        // TODO 1: 내 다음 record의 search key가 file의 search key보다 작으면 file의 작은 레코드 -> 내 레코드 -> 내 다음 레코드 -> file의 큰 레코드
-                        // TODO 2: 내 다음 record가 없거나, 내 다음 record의 search key가 file의 search key보다 크면 file의 작은 레코드 -> 내 레코드 -> file의 큰 레코드
-                        if(record != records.getLast() && Arrays.compare(records.get(n_th_record + 1).getFields().getFirst(), current_search_key) <= 0){
-                            // TODO 1
-                        }
-                        else{
-                            // TODO 2
-                        }
+                    if(current_record_offset == 0 && n_th_block == 1) { // before record가 없는 경우에는 record 가져오기까지만 하기
+                        System.arraycopy(block, current_record_offset + Global_Variables.bitmap_bytes, current_search_key, 0, search_key_size); // 해당 record의 search key 가져오기
+                        current_record_offset += get_record_length(current_record_bitmap, field_lengths);
+                        continue;
                     }
-                    else continue;
+                    System.arraycopy(current_search_key, 0, before_search_key, 0, search_key_size);     // 현재 record search key를 before로 저장
+                    System.arraycopy(block, current_record_offset, current_search_key, 0, search_key_size);                  // 해당 record의 search key 가져오기
+
+                    // 각 record를 읽으면서 record가 들어갈 자리인지 확인
+                    for(int n_th_record = 0 ; n_th_record < records.size() ; n_th_record++){
+                        Record my_record = records.get(n_th_record); // n번째 record 가져오기
+                        byte[] my_search_key = my_record.getFields().getFirst();
+
+                        // 내 record가 들어갈 자리라면
+                        if(Arrays.compare(my_search_key, before_search_key) > 0 && Arrays.compare(my_search_key, current_search_key) <= 0){
+                            // TODO : input record들의 pointer값에, file의 큰 record보다 큰 record 값이 나올 때까지 input의 다음 record를 가리킴.
+                            byte[] before_record_bitmap = new byte[Global_Variables.bitmap_bytes];
+                            System.arraycopy(block, before_record_offset, before_record_bitmap, 0, Global_Variables.bitmap_bytes);
+                            int before_record_pointer_offset = before_record_offset + get_record_length(before_record_bitmap, field_lengths) - Global_Variables.pointer_bytes;
+
+                            // before record에 내 record의 offset을 저장
+                            System.arraycopy(, , block, before_record_pointer_offset, Global_Variables.pointer_bytes);
+                            int temp = 1;
+                            Record temp_record;
+                            do{
+                                temp_record = records.get(n_th_record + temp);
+
+                            }
+                            while(Arrays.compare(temp_record.getFields().getFirst(), current_search_key) <= 0); // 더 큰 값이 나올 때까지 record가 순차적으로 가리킴
+                            if(my_record != records.getLast() && Arrays.compare(records.get(n_th_record + 1).getFields().getFirst(), current_search_key) <= 0){
+                                // TODO 1
+
+
+                            }
+                            else{
+                                // TODO 2
+                            }
+                        }
+                        my_record_offset += get_record_length(my_record.getBitmap(), field_lengths);
+                    }
+
+                    write(block, path, Global_Variables.Block_Size * n_th_block);
+                    before_record_offset = current_record_offset;   // 다음 loop에서 현재의 record를 '이전 record'로 취급
                 }
+
+
+
+
             }
 
             // block을 다 읽은 후, 아직 포인터가 명시되지 않은 record들은 input의 바로 다음 record를 가리킴.
