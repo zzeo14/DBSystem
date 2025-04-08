@@ -65,13 +65,6 @@ class Record implements Comparable<Record>{
     private List<byte[]> fields;
     private int next_pointer;
 
-    public Record() {}
-    public Record(byte bitmap, List<byte[]> fields, int next_pointer, int field_num){
-        this.bitmap = bitmap;
-        this.fields = fields;
-        this.next_pointer = next_pointer;
-    }
-
     public byte getBitmap() { return bitmap; }
     public List<byte[]> getFields() { return fields; }
     public int getNext_pointer() { return next_pointer; }
