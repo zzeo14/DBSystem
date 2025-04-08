@@ -161,8 +161,8 @@ public class IO_Manager {
                 if(file.read(block) == -1) break;
                 int current_record_offset = 0;
                 int before_record_offset = 0;
-                int my_record_offset = 0;
 
+                // TODO: current_record가 현재 block이 아니라 다른 block에 있을 수도 있음
                 while(current_record_offset < Global_Variables.Block_Size){
                     // record의 bitmap 가져오기
                     byte[] current_record_bitmap = new byte[Global_Variables.bitmap_bytes];
@@ -174,12 +174,13 @@ public class IO_Manager {
                         continue;
                     }
                     System.arraycopy(current_search_key, 0, before_search_key, 0, search_key_size);     // 현재 record search key를 before로 저장
-                    System.arraycopy(block, current_record_offset, current_search_key, 0, search_key_size);                  // 해당 record의 search key 가져오기
+                    System.arraycopy(block, current_record_offset, current_search_key, 0, search_key_size);    // 해당 record의 search key 가져오기
 
                     // 각 record를 읽으면서 record가 들어갈 자리인지 확인
                     for(int n_th_record = 0 ; n_th_record < records.size() ; n_th_record++){
                         Record my_record = records.get(n_th_record); // n번째 record 가져오기
                         byte[] my_search_key = my_record.getFields().getFirst();
+                        int my_record_length = get_record_length(my_record, field_lengths);
 
                         // 내 record가 들어갈 자리라면
                         if(Arrays.compare(my_search_key, before_search_key) > 0 && Arrays.compare(my_search_key, current_search_key) <= 0){
@@ -189,7 +190,7 @@ public class IO_Manager {
                             int before_record_pointer_offset = before_record_offset + get_record_length(before_record_bitmap, field_lengths) - Global_Variables.pointer_bytes;
 
                             // before record에 내 record의 offset을 저장
-                            System.arraycopy(, , block, before_record_pointer_offset, Global_Variables.pointer_bytes);
+                            // System.arraycopy(, , block, before_record_pointer_offset, Global_Variables.pointer_bytes);
                             int temp = 1;
                             Record temp_record;
                             do{
@@ -212,9 +213,6 @@ public class IO_Manager {
                     write(block, path, Global_Variables.Block_Size * n_th_block);
                     before_record_offset = current_record_offset;   // 다음 loop에서 현재의 record를 '이전 record'로 취급
                 }
-
-
-
 
             }
 
