@@ -11,7 +11,8 @@ public class IO_Manager {
     public void write(byte[] s, String path, long offset) {
         try {
             RandomAccessFile file = new RandomAccessFile(path, "rw");
-            file.seek(offset);
+            if(offset == -1)  file.seek(file.length());
+            else file.seek(offset);
             file.write(s);
 
             file.close();
@@ -22,9 +23,11 @@ public class IO_Manager {
         }
     }
 
-    public void write_block(byte[] s, String path) {
+    // path에 block을 쓰기
+    /*public void write_block(byte[] s, String path) {
         try {
             RandomAccessFile file = new RandomAccessFile(path, "rw");
+            // 헤더블록이 있으면 파일의 맨 끝에 write
             if (is_header_pointer_filled(file)) {
 
             }
@@ -52,7 +55,7 @@ public class IO_Manager {
             System.out.println("IO Exception 발생");
             e.printStackTrace();
         }
-    }
+    }*/
 
     public byte[] read(RandomAccessFile file, long offset) throws IOException {
         byte[] ret_bytes = new byte[Global_Variables.Block_Size];
@@ -164,6 +167,9 @@ public class IO_Manager {
 
             now_offset = next_offset;
         }
+        // 마지막 record의 s_k가 file에서 가장 큰 s_k를 가진 record보다 크다면, 마지막 record의 pointer는 0으로 설정
+        if(ret_value.size() != records.size()) ret_value.add(IntToByte(0, Global_Variables.pointer_bytes));
+
         return ret_value;
     }
 
@@ -192,7 +198,7 @@ public class IO_Manager {
     // 주어진 input record들의 next record pointer를 지정하는 함수 //
     // block 단위로 file을 읽으며, record가 들어올 자리가 있으면 file 내부의 record pointer도 변경 //
     // file의 가장 마지막 record는 0을 기록하여 다음 record가 없음을 나타낸다 //
-    public List<byte[]> find_next_pointer(List<Record> records, String path, int[] field_lengths) {
+    public List<byte[]> find_next_pointers(List<Record> records, String path, int[] field_lengths) {
         List<byte[]> pointers = new ArrayList<>();
         int search_key_size = field_lengths[0];
 
@@ -269,6 +275,11 @@ public class IO_Manager {
             }
 
             pointers = determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
+
+            // block들 파일에 쓰기
+            for(int i = 0 ; i < n_th_block ; i++){
+                write(blocks.get(i), path, Global_Variables.Block_Size * n_th_block);
+            }
         }
         catch (IOException e){
             System.out.println("IOException 발생");

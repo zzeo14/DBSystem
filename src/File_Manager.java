@@ -112,10 +112,38 @@ public class File_Manager {
         Collections.sort(records);
 
         // pointer값 가져오기 (함수 내부에서 file에 저장되어 있는 record들의 포인터도 조정함)
-        List<byte[]> pointers = io.find_next_pointer(records, file_name, field_lengths);
+        List<byte[]> pointers = io.find_next_pointers(records, file_name, field_lengths);
+        if(pointers.size() != records.size()){
+            pointers.add(io.IntToByte(0, Global_Variables.pointer_bytes));
+        }
 
-        //TODO : record를 file에 write
-        //byte[] block = new byte[Block_Size];
+        // record를 file에 write
+        byte[] block = new byte[Global_Variables.Block_Size];
+        int offset = 0;
+        for(int i = 0 ; i < records.size() ; i++){
+            Record record = records.get(i);
+            int record_size = io.get_record_length(record, field_lengths);
+
+            // record가 더이상 block에 들어가지 않으면 block 쓰고 초기화
+            if(offset + record_size >= Global_Variables.Block_Size){
+                io.write(block, file_name + ".txt", -1);
+                for(byte b : block) b = 0;
+                offset = 0;
+            }
+
+            // bitmap 입력
+            System.arraycopy(record.getBitmap(), 0, block, offset, Global_Variables.bitmap_bytes);
+            offset += Global_Variables.bitmap_bytes;
+            List<byte[]> fields = record.getFields();
+            // 각 field 입력
+            for(int j = 0 ; j < field_num ; j++) {
+                System.arraycopy(fields.get(j), 0, block, offset, field_lengths[j]);
+                offset += field_lengths[j];
+            }
+
+            System.arraycopy(pointers.get(i), 0, block, offset, Global_Variables.pointer_bytes);
+            offset += Global_Variables.pointer_bytes;
+        }
         //io.write_block(block, file_name);
 
         //출력해보기 코드
