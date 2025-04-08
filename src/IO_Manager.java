@@ -113,16 +113,26 @@ public class IO_Manager {
         return length;
     }
 
+    // integer를 byte 배열로 변환
     public byte[] IntToByte(int value, int byte_size) {
         byte[] return_byte = new byte[byte_size];
         for(int i = 0 ; i < byte_size ; i++){
             return_byte[i] = (byte)((value >> (8 * i)) & 0xFF);
         }
-
         return return_byte;
     }
 
+    // byte 배열을 integer로 변환
+    public int ByteToInt(byte[] bytes) {
+        int result = 0;
+        for (int i = 0; i < bytes.length; i++) {
+            result |= ((bytes[i] & 0xFF) << (8 * i));
+        }
+        return result;
+    }
+
     // 주어진 input record들의 next record pointer를 지정하는 함수 //
+    // block 단위로 file을 읽으며, record가 들어올 자리가 있으면 file 내부의 record pointer도 변경 //
     // file의 가장 마지막 record는 0을 기록하여 다음 record가 없음을 나타낸다 //
     public List<byte[]> find_next_pointer(List<Record> records, String path, int[] field_lengths) {
         List<byte[]> pointers = new ArrayList<>();
@@ -178,6 +188,7 @@ public class IO_Manager {
             // 해당 record offset에서 record 길이만큼 더한 것이 다음 record의 주소가 됨.
             for(int n_th_record = 0 ; n_th_record < records.size() ; n_th_record++){
                 Record record = records.get(n_th_record);
+                // record의 pointer가 지정됐거나, 마지막 record일 경우 다음 record로 넘어감
                 if(record.getNext_pointer() == 0 && n_th_record != records.size() - 1){
                     // 1 : file에 record가 하나도 없는 경우
                     // 2 : 입력한 record들 중 가장 search key가 작은 record의 search key가, file에서 search key가 가장 큰 record의 search key보다 큰 경우
@@ -185,6 +196,8 @@ public class IO_Manager {
                         last_offset = n_th_block * Global_Variables.Block_Size + get_record_length(record, field_lengths);
                         pointers.add(IntToByte(last_offset, Global_Variables.pointer_bytes));
                     }
+                    // record들 중 몇 개는 pointer가 명시되고, 몇 개는 값이 0인 경우
+                    // 현재 record의 offset에서 현재 record의 길이만큼 더하여 offset을 결정한다.
                     else {
                         last_offset += get_record_length(record, field_lengths);
                         pointers.add(IntToByte(last_offset, Global_Variables.pointer_bytes));
