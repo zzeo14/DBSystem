@@ -23,40 +23,6 @@ public class IO_Manager {
         }
     }
 
-    // path에 block을 쓰기
-    /*public void write_block(byte[] s, String path) {
-        try {
-            RandomAccessFile file = new RandomAccessFile(path, "rw");
-            // 헤더블록이 있으면 파일의 맨 끝에 write
-            if (is_header_pointer_filled(file)) {
-
-            }
-            else { // 헤더블록이 비어있으면 헤더블록에 포인터 추가 후 파일쓰기
-                byte[] header = new byte[Global_Variables.Block_Size];
-                file.seek(0);
-                file.read(header);
-
-                // block size를 byte배열로 변환
-                // header block이 0 ~ block_size - 1까지이므로,
-                // first block은 block_size offset부터 시작한다.
-                byte[] first_block_pointer = new byte[Global_Variables.pointer_bytes];
-                for(int i = 0; i < Global_Variables.pointer_bytes; i++){
-                    first_block_pointer[i] = (byte)(Global_Variables.Block_Size >>> (8 * (3-i)));
-                    header[i] = first_block_pointer[i];
-                }
-
-                file.seek(Global_Variables.Block_Size);
-                file.write(s);
-
-                file.close();
-            }
-        }
-        catch(IOException e){
-            System.out.println("IO Exception 발생");
-            e.printStackTrace();
-        }
-    }*/
-
     public byte[] read(RandomAccessFile file, long offset) throws IOException {
         byte[] ret_bytes = new byte[Global_Variables.Block_Size];
         file.seek(offset);
@@ -277,6 +243,7 @@ public class IO_Manager {
             pointers = determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
 
             // block들 파일에 쓰기
+            System.out.println("n_th_block = " + n_th_block);
             for(int i = 0 ; i < n_th_block ; i++){
                 write(blocks.get(i), path, Global_Variables.Block_Size * n_th_block);
             }

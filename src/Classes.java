@@ -2,7 +2,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 class Global_Variables {
-    public static final int Block_Size = 512;
+    public static final int Block_Size = 128;
     public static final int bitmap_bytes = 1;
     public static final int field_num_bytes = 1;
     public static final int pointer_bytes = 4;

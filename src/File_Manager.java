@@ -145,20 +145,6 @@ public class File_Manager {
             offset += Global_Variables.pointer_bytes;
         }
         io.write(block, file_name + ".txt", -1);
-        //io.write_block(block, file_name);
-
-        //출력해보기 코드
-        /*for(int i = 0 ; i < records_size - error_records.size(); i++){
-            Record record = records.get(i);
-            List<byte[]> fields = record.getFields();
-            System.out.print(record.getBitmap() + " : ");
-            for(int j = 0 ; j < fields.size(); j++){
-                String s = new String(fields.get(j), StandardCharsets.US_ASCII);
-                System.out.print(s + " : ");
-            }
-            System.out.println();
-        }*/
-
     }
 
     private Header_Content read_header(String file_name){
