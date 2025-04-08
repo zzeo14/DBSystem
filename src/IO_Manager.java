@@ -268,7 +268,7 @@ public class IO_Manager {
                 my_record_num++;
             }
 
-            return determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
+            pointers = determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
         }
         catch (IOException e){
             System.out.println("IOException 발생");
