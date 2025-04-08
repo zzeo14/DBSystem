@@ -1,6 +1,16 @@
 import java.util.ArrayList;
 import java.util.List;
 
+class Global_Variables {
+    public static final int Block_Size = 512;
+    public static final int bitmap_bytes = 1;
+    public static final int field_num_bytes = 1;
+    public static final int pointer_bytes = 4;
+    public static final int field_name_bytes = 16;
+    public static final int field_type_bytes = 8;
+    public static final int field_order_bytes = 1;
+}
+
 class Fields {
     private byte[] field_name = new byte[16];
     private byte[] field_type = new byte[8];
@@ -32,6 +42,7 @@ class Fields {
 class Metadata {
     private List<Fields> fields = new ArrayList<>();
     private byte field_num;
+    //private byte max_len = 0;
 
     public void AddField(Fields field){
         fields.add(field);
@@ -40,6 +51,9 @@ class Metadata {
 
     public void setField_num(int field_num) { this.field_num = (byte)field_num; }
     public byte getField_num() { return field_num; }
+
+    //public void setMax_len(byte max_len) { this.max_len = max_len; }
+    //public byte getMax_len() { return max_len; }
 
     public List<Fields> getFields(){
         return fields;
