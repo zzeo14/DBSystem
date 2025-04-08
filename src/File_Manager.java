@@ -61,38 +61,38 @@ public class File_Manager {
 
         record_loop:
         for(int rec_num = 0 ; rec_num < records_size ; rec_num++) {
-            int record_size = 1 + 4; // 1 bit : bitmap size, 4 bit : pointer size
+            int record_size = Global_Variables.bitmap_bytes + Global_Variables.pointer_bytes; // 1 bit : bitmap size, 4 bit : pointer size
             Record record = records.get(rec_num);
 
             List<byte[]> fields = record.getFields();
             byte[] bitmap = record.getBitmap();
 
             // search key(첫 번째 field)가 null이면 에러처리 //
-            if ((bitmap[0] & 1 << 7) != 0) { inv_q(rec_num); error_records.add(rec_num); continue record_loop; }
+            if ((bitmap[0] & (1 << 7)) != 0) { inv_q(rec_num); error_records.add(rec_num); continue; }
 
             int field_cnt = fields.size();
-            for(int k = 0 ; k < bitmap.length ; k++){
-                for (int j = 0; j < Global_Variables.bitmap_bytes && j < field_names.size(); j++) {
-                    if ((bitmap[k] & 1 << (7 - j)) != 0) field_cnt++;
-                    else record_size += field_lengths[j];
-                }
-            }
-            // record의 field 개수가 header block 정보와 다르면 에러처리 //
-            if (field_cnt != field_num) {inv_q(rec_num); error_records.add(rec_num); continue record_loop; }
+            for (int j = 0; j < field_names.size(); j++) {
+                int bitmap_byte = j / 8;
+                int bitmap_bit = j % 8;
 
+                if (((bitmap[bitmap_byte] >> (7 - bitmap_bit)) & 1) != 0) field_cnt++;
+                else record_size += field_lengths[j];
+            }
+
+            // record의 field 개수가 header block 정보와 다르면 에러처리 //
+            if (field_cnt != field_num) {inv_q(rec_num); error_records.add(rec_num); continue; }
             // field type size가 안 맞으면 에러처리 //
             int null_cnt = 0;
-            System.out.println("line : " + (rec_num + 4) + ", fields_size : " + fields.size());
 
-            for (int j = 0; j < fields.size(); j++) {
-                int byte_index = j / 8;
-                int bit_index = j % 8;
-                if (((bitmap[byte_index] >> bit_index) & 1) != 0) {
+            for (int j = 0; j < field_names.size(); j++) {
+                int bitmap_byte = j / 8;
+                int bitmap_bit = j % 8;
+                if (((bitmap[bitmap_byte] >> (7 - bitmap_bit)) & 1) != 0) {
                     null_cnt++;
                     continue;
                 }
 
-                if (fields.get(j).length != field_lengths[j + null_cnt]) {
+                if (fields.get(j - null_cnt).length != field_lengths[j]) {
                     String a = new String(fields.get(j), StandardCharsets.US_ASCII);
                     System.out.println(a);
                     inv_q(rec_num);
@@ -112,7 +112,7 @@ public class File_Manager {
         Collections.sort(records);
 
         // pointer값 가져오기 (함수 내부에서 file에 저장되어 있는 record들의 포인터도 조정함)
-        List<byte[]> pointers = io.find_next_pointers(records, file_name, field_lengths);
+        List<byte[]> pointers = io.find_next_pointers(records, file_name + ".txt", field_lengths);
         if(pointers.size() != records.size()){
             pointers.add(io.IntToByte(0, Global_Variables.pointer_bytes));
         }
@@ -126,7 +126,7 @@ public class File_Manager {
 
             // record가 더이상 block에 들어가지 않으면 block 쓰고 초기화
             if(offset + record_size >= Global_Variables.Block_Size){
-                io.write(block, file_name + ".txt", -1);
+                io.write(block, file_name + ".txt", -1); // 파일의 맨 뒤에 write
                 for(byte b : block) b = 0;
                 offset = 0;
             }
@@ -136,14 +136,15 @@ public class File_Manager {
             offset += Global_Variables.bitmap_bytes;
             List<byte[]> fields = record.getFields();
             // 각 field 입력
-            for(int j = 0 ; j < field_num ; j++) {
-                System.arraycopy(fields.get(j), 0, block, offset, field_lengths[j]);
+            for(int j = 0 ; j < fields.size() ; j++) {
+                System.arraycopy(fields.get(j), 0, block, offset, fields.get(j).length);
                 offset += field_lengths[j];
             }
 
             System.arraycopy(pointers.get(i), 0, block, offset, Global_Variables.pointer_bytes);
             offset += Global_Variables.pointer_bytes;
         }
+        io.write(block, file_name + ".txt", -1);
         //io.write_block(block, file_name);
 
         //출력해보기 코드
@@ -158,10 +159,6 @@ public class File_Manager {
             System.out.println();
         }*/
 
-    }
-    
-    public void inv_q(int i) {
-        System.out.println("Invalid query at line " + (4 + i));
     }
 
     private Header_Content read_header(String file_name){
@@ -220,5 +217,10 @@ public class File_Manager {
         header_content.SetField_lengths(field_lengths);
         header_content.SetField_orders(field_orders);
         return header_content;
+    }
+
+    // error handling
+    public void inv_q(int i) {
+        System.out.println("Invalid query at line " + (4 + i));
     }
 }

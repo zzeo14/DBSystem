@@ -5,7 +5,7 @@ import java.sql.Statement;
 
 public class MySQL_Manager {
     public void execute(String query, String type){
-        System.out.println(query);
+        //System.out.println(query);
 
         // 기본값 설정 //
         String url = "jdbc:mysql://localhost:3306/DBSystem";
@@ -41,6 +41,7 @@ public class MySQL_Manager {
                     break;
                 }
                 case "insert": {
+                    stmt.executeUpdate(query);
                     break;
                 }
                 case "find field": {

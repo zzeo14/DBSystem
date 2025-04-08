@@ -23,6 +23,7 @@ public class Main {
             Scanner sc = new Scanner(System.in);
             String option = sc.nextLine();
 
+
             switch (option) {
                 case "1":
                     System.out.print("\nEnter Query file path >> ");

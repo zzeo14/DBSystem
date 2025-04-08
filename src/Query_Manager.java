@@ -91,9 +91,9 @@ public class Query_Manager {
                     List<byte[]> element = new ArrayList<>();
 
                     byte bitmap[] = new byte[Global_Variables.bitmap_bytes];
-                    int byte_index = 0;
-                    int bit_index = 0;
                     for(int j = 0 ; j < query.length ; j++) {
+                        int byte_index = j / 8;
+                        int bit_index = j % 8;
                         if(query[j].equalsIgnoreCase("null") || query[j].equalsIgnoreCase("null,")){ // null은 record에 field를 추가하지 않고 bitmap을 바꿈
                             bitmap[byte_index] |= (byte)(1 << (7 - bit_index));
                             temp_query += "null";
@@ -114,6 +114,7 @@ public class Query_Manager {
                     record.setBitmap(bitmap);
 
                     records.add(record);
+                    sql_manager.execute(temp_query, "insert");
                 }
                 file_manager.insert_record(records, table_name);
             }
