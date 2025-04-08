@@ -183,11 +183,11 @@ public class IO_Manager {
                     // 2 : 입력한 record들 중 가장 search key가 작은 record의 search key가, file에서 search key가 가장 큰 record의 search key보다 큰 경우
                     if(n_th_record == 0){
                         last_offset = n_th_block * Global_Variables.Block_Size + get_record_length(record, field_lengths);
-                        //pointers.add(last_offset);
+                        pointers.add(IntToByte(last_offset, Global_Variables.pointer_bytes));
                     }
                     else {
                         last_offset += get_record_length(record, field_lengths);
-                        //pointers.add(last_offset)
+                        pointers.add(IntToByte(last_offset, Global_Variables.pointer_bytes));
                     }
                 }
             }
