@@ -90,10 +90,12 @@ public class Query_Manager {
                     String[] query = line.split(";"); // 각 column을 semi colon으로 분리
                     List<byte[]> element = new ArrayList<>();
 
-                    byte bitmap = 0;
+                    byte bitmap[] = new byte[Global_Variables.bitmap_bytes];
+                    int byte_index = 0;
+                    int bit_index = 0;
                     for(int j = 0 ; j < query.length ; j++) {
                         if(query[j].equalsIgnoreCase("null") || query[j].equalsIgnoreCase("null,")){ // null은 record에 field를 추가하지 않고 bitmap을 바꿈
-                            bitmap = (byte)(bitmap | (1 << (7 - j)));
+                            bitmap[byte_index] |= (byte)(1 << (7 - bit_index));
                             temp_query += "null";
                         }
                         else {
