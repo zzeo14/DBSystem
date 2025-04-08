@@ -83,8 +83,6 @@ public class IO_Manager {
             int byteIndex = i / 8;
             int bitIndex = i % 8;
 
-            if(byteIndex >= bitmap.length) break;
-
             // i / 8번째 byte의 왼쪽에서 i % 8번째 bit가 1인지 확인
             boolean isNull = (bitmap[byteIndex] & (1 << (7 - bitIndex))) != 0;
 
@@ -119,26 +117,35 @@ public class IO_Manager {
     public List<byte[]> determine_pointers(List<Record> records, List<byte[]> pointers, int offset, int[] field_lengths){
         // 포인터가 모두 결정되어 있으면 포인터 값 그대로 리턴
         if(records.size() == pointers.size()) return pointers;
-
-        List<byte[]> ret_value = pointers;
+;
         int now_offset = offset;
         for(int i = 0 ; i < records.size() ; i++){
             // pointer가 정해진 record는 건너뛰기
             if(i < pointers.size()) continue;
+            if(i == records.size() - 1 && records.size() != pointers.size()) {
+                pointers.add(IntToByte(0, Global_Variables.pointer_bytes));
+            }
 
             Record record = records.get(i);
             int record_length = get_record_length(record, field_lengths);
 
-            // 다음 레코드 시작 주소 = 현재 레코드 시작 주소 + 현재 레코드 길이
-            int next_offset = now_offset + record_length;
-            ret_value.add(IntToByte(next_offset, Global_Variables.pointer_bytes));
+            int next_offset;
+
+            // 블록 안에 record가 들어가는 경우 = 현재 레코드 시작 주소 + 현재 레코드 길이
+            if(now_offset % Global_Variables.Block_Size < (now_offset + record_length) % Global_Variables.Block_Size) next_offset = now_offset + record_length;
+            // 블록을 넘어가는 경우 = 다음 블록의 첫 주소
+            else {
+                next_offset = ((now_offset / Global_Variables.Block_Size) + 1) * Global_Variables.Block_Size;
+                System.out.println(next_offset);
+            }
+            pointers.add(IntToByte(next_offset, Global_Variables.pointer_bytes));
 
             now_offset = next_offset;
         }
         // 마지막 record의 s_k가 file에서 가장 큰 s_k를 가진 record보다 크다면, 마지막 record의 pointer는 0으로 설정
-        if(ret_value.size() != records.size()) ret_value.add(IntToByte(0, Global_Variables.pointer_bytes));
+        if(pointers.size() != records.size()) pointers.add(IntToByte(0, Global_Variables.pointer_bytes));
 
-        return ret_value;
+        return pointers;
     }
 
     // record의 위치를 이용해 해당 record의 search key를 반환
@@ -226,10 +233,11 @@ public class IO_Manager {
 
                         byte[] before_block = blocks.get(bef_record_block_num);
                         byte[] before_record_bitmap = new byte[Global_Variables.bitmap_bytes];
-                        System.arraycopy(before_block, cur_record_block_offset, before_record_bitmap, 0, Global_Variables.bitmap_bytes);
+                        System.arraycopy(before_block, bef_record_block_offset, before_record_bitmap, 0, Global_Variables.bitmap_bytes);
                         int before_record_length = get_record_length(before_record_bitmap, field_lengths);
                         // search key가 마지막으로 작았던 file record의 pointer를 my record의 주소로 업데이트
-                        System.arraycopy(my_record_offset_byte, 0, blocks.get(bef_record_block_num), bef_record_block_offset + before_record_length - Global_Variables.pointer_bytes, Global_Variables.pointer_bytes);
+                        if(bef_record_block_num == 0 && bef_record_block_offset == 0) System.arraycopy(my_record_offset_byte, 0, blocks.getFirst(), 0, Global_Variables.pointer_bytes);
+                        else System.arraycopy(my_record_offset_byte, 0, blocks.get(bef_record_block_num), bef_record_block_offset + before_record_length - Global_Variables.pointer_bytes, Global_Variables.pointer_bytes);
 
                         // input record들 중에서 현재 file record보다 search key가 작은 모든 record를 찾아 pointers에 추가
                         List<byte[]> less_records = take_less_records(records, my_record_num, current_record_search_key, my_record_offset, field_lengths);
@@ -237,8 +245,9 @@ public class IO_Manager {
                         pointers.addAll(less_records);
 
                         // 업데이트할 record 번호는 채워진 pointer 배열의 원소 개수와 같음
-                        for(int k = 0 ; k < pointers.size() - my_record_num ; k++){
+                        for(int k = 0 ; k < pointers.size() - my_record_num - 1 ; k++){
                             my_record_num++;
+                            if(my_record_num >= records.size()) break;
                             record = records.get(my_record_num);
                             my_record_offset += get_record_length(record, field_lengths);
                         }
@@ -253,14 +262,9 @@ public class IO_Manager {
                     int current_record_length = get_record_length(current_record_bitmap, field_lengths);
                     int current_record_pointer_offset = current_record_offset + current_record_length - Global_Variables.pointer_bytes;
 
-                    System.out.println("c_r_b: " + current_record_bitmap[0]);
-                    System.out.println("current_record_pointer_offset: " + current_record_pointer_offset);
-                    System.out.println("c_b_n: " + cur_record_block_num + ", c_r_p_o: " + current_record_pointer_offset % Global_Variables.Block_Size);
                     byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
                     System.arraycopy(current_block, current_record_pointer_offset % Global_Variables.Block_Size, next_record_offset, 0, Global_Variables.pointer_bytes);
                     current_record_offset = ByteToInt(next_record_offset);
-                    System.out.println(next_record_offset[0] + " " + next_record_offset[1] + " " + next_record_offset[2] + " " + next_record_offset[3]);
-                    System.out.println("current_record_offset: " + current_record_offset);
                 }
                 my_record_num++;
                 my_record_offset += get_record_length(record, field_lengths);
@@ -269,7 +273,6 @@ public class IO_Manager {
             pointers = determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
 
             // block들 파일에 쓰기
-            System.out.println("n_th_block = " + n_th_block);
             for(int i = 0 ; i < n_th_block ; i++){
                 write(blocks.get(i), path, Global_Variables.Block_Size * i);
             }

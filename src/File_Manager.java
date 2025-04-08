@@ -124,7 +124,8 @@ public class File_Manager {
             Record record = records.get(i);
             int record_size = io.get_record_length(record, field_lengths);
 
-            // record가 더이상 block에 들어가지 않으면 block 쓰고 초기화
+            // record가 더이상 block에 들어가지 않으면, block 쓰고 초기화
+            // block의 마지막 record에 있는 포인터를 그 다음 block의 첫 record의 offset으로 변경해줌
             if(offset + record_size >= Global_Variables.Block_Size){
                 io.write(block, file_name + ".txt", -1); // 파일의 맨 뒤에 write
                 for(int j = 0 ; j < Global_Variables.Block_Size ; j++) {
@@ -140,7 +141,7 @@ public class File_Manager {
             // 각 field 입력
             for(int j = 0 ; j < fields.size() ; j++) {
                 System.arraycopy(fields.get(j), 0, block, offset, fields.get(j).length);
-                offset += field_lengths[j];
+                offset += fields.get(j).length;
             }
 
             System.arraycopy(pointers.get(i), 0, block, offset, Global_Variables.pointer_bytes);
