@@ -151,8 +151,11 @@ public class IO_Manager {
                 file.seek(n_th_block * Global_Variables.Block_Size); // n번째 block 가져오기
                 if(file.read(block) == -1) break;
 
-                byte bitmap = block[offset];
+                // record의 bitmap 가져오기
+                byte[] bitmap = new byte[Global_Variables.bitmap_bytes];
+                System.arraycopy(block, offset, bitmap, 0, Global_Variables.bitmap_bytes);
                 offset += Global_Variables.bitmap_bytes;
+
                 if(offset == Global_Variables.bitmap_bytes && n_th_block == 1) { // before record가 없는 경우에는 record 가져오기까지만 하기
                     System.arraycopy(block, offset, current_search_key, 0, search_key_size); // 해당 record의 search key 가져오기
                     continue;
