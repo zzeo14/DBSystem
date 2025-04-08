@@ -151,7 +151,7 @@ public class IO_Manager {
         try{
             RandomAccessFile file = new RandomAccessFile(path, "rw");
             int n_th_block = 1;
-            for(n_th_block = 1 ; ; n_th_block ++){  // 0은 헤더블록이므로 제외
+            for(n_th_block = 1 ; ; n_th_block ++){  // 블록 단위로 read. 0은 헤더블록이므로 제외
                 file.seek(n_th_block * Global_Variables.Block_Size); // n번째 block 가져오기
                 if(file.read(block) == -1) break;
 
@@ -170,9 +170,9 @@ public class IO_Manager {
                     byte[] field = record.getFields().getFirst();
 
                     // 내 record가 들어갈 자리라면
-                    // TODO 1: 내 다음 record의 search key가 file의 search key보다 작으면 내 record의 포인터는 내 다음 record
-                    // TODO 2: 내 다음 record가 없거나, 내 다음 record의 search key가 file의 search key보다 크면 내 record의 포인터는 file의 current record
                     if(Arrays.compare(field, before_search_key) > 0 && Arrays.compare(field, current_search_key) <= 0){
+                        // TODO 1: 내 다음 record의 search key가 file의 search key보다 작으면 file의 작은 레코드 -> 내 레코드 -> 내 다음 레코드 -> file의 큰 레코드
+                        // TODO 2: 내 다음 record가 없거나, 내 다음 record의 search key가 file의 search key보다 크면 file의 작은 레코드 -> 내 레코드 -> file의 큰 레코드
                         if(record != records.getLast() && Arrays.compare(records.get(n_th_record + 1).getFields().getFirst(), current_search_key) <= 0){
                             // TODO 1
                         }
