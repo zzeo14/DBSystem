@@ -4,6 +4,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.RandomAccess;
 
 public class IO_Manager {
 
@@ -24,7 +25,7 @@ public class IO_Manager {
     public void write_block(byte[] s, String path) {
         try {
             RandomAccessFile file = new RandomAccessFile(path, "rw");
-            if (is_header_pointer_filled(path)) {
+            if (is_header_pointer_filled(file)) {
 
             }
             else { // 헤더블록이 비어있으면 헤더블록에 포인터 추가 후 파일쓰기
@@ -53,15 +54,20 @@ public class IO_Manager {
         }
     }
 
-    public byte[] read(String path, long offset) {
+    public byte[] read(RandomAccessFile file, long offset) throws IOException {
+        byte[] ret_bytes = new byte[Global_Variables.Block_Size];
+        file.seek(offset);
+        file.read(ret_bytes);
+
+        file.close();
+        return ret_bytes;
+    }
+
+    public byte[] read(String path, long offset){
         byte[] ret_bytes = new byte[Global_Variables.Block_Size];
         try{
-            RandomAccessFile file = new RandomAccessFile(path, "r");
-
-            file.seek(offset);
-            file.read(ret_bytes);
-
-            file.close();
+            RandomAccessFile file = new RandomAccessFile(path, "rw");
+            ret_bytes = read(file, offset);
         }
         catch (IOException e){
             System.out.println("IO Exception 발생");
@@ -75,28 +81,18 @@ public class IO_Manager {
         return file.exists();
     }
 
-    public boolean is_header_pointer_filled(String path){
+    public boolean is_header_pointer_filled(RandomAccessFile file) throws IOException {
         byte[] header_block = new byte[Global_Variables.Block_Size];
-        try{
-            RandomAccessFile file = new RandomAccessFile(path, "r");
+        file.seek(0);
+        file.read(header_block);
 
-            file.seek(0);
-            file.read(header_block);
-
-            for(int i = 0 ; i < Global_Variables.pointer_bytes ; i++){
-                if(header_block[i] != 0) {
-                    System.out.println(header_block[i]);
-                    return true;
-                }
+        for(int i = 0 ; i < Global_Variables.pointer_bytes ; i++){
+            if(header_block[i] != 0) {
+                System.out.println(header_block[i]);
+                return true;
             }
-            file.close();
-            return false;
         }
-        catch (IOException e){
-            System.out.println("IO Exception 발생");
-            e.printStackTrace();
-            return false;
-        }
+        return false;
     }
 
     // 현재 record의 길이를 찾는 method             //
@@ -190,9 +186,17 @@ public class IO_Manager {
                 Record record = records.get(n_th_record);
                 // record의 pointer가 지정됐거나, 마지막 record일 경우 다음 record로 넘어감
                 if(record.getNext_pointer() == 0 && n_th_record != records.size() - 1){
-                    // 1 : file에 record가 하나도 없는 경우
+                    // 1 : file에 record가 하나도 없는 경우 -> 헤더블록의 포인터를 첫 번째 레코드의 offset으로 변경
                     // 2 : 입력한 record들 중 가장 search key가 작은 record의 search key가, file에서 search key가 가장 큰 record의 search key보다 큰 경우
                     if(n_th_record == 0){
+                        // 1
+                        if(n_th_block == 1){
+                            byte[] header = read(file, 0);
+                            byte[] pointer = IntToByte(Global_Variables.Block_Size, Global_Variables.pointer_bytes);
+                            System.arraycopy(pointer, 0, header, 0, Global_Variables.pointer_bytes);
+                            write(header, path, 0);
+                        }
+                        // 1 && 2
                         last_offset = n_th_block * Global_Variables.Block_Size + get_record_length(record, field_lengths);
                         pointers.add(IntToByte(last_offset, Global_Variables.pointer_bytes));
                     }
