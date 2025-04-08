@@ -9,12 +9,11 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 public class File_Manager {
-    private static final int Block_Size = 512;
     private IO_Manager io = new IO_Manager();
-    private byte[] block = new byte[Block_Size];
+    private byte[] block = new byte[Global_Variables.Block_Size];
 
     public void create_file(String file_name, Metadata metadata) {
-        for (int i = 0; i < Block_Size; i++) {block[i] = 0;} // block을 0으로 초기화
+        for (int i = 0; i < Global_Variables.Block_Size; i++) {block[i] = 0;} // block을 0으로 초기화
         
         try {
             File file = new File(file_name + ".txt");
@@ -26,14 +25,14 @@ public class File_Manager {
 
             List<Fields> fields = metadata.getFields();
             block[4] = (byte)fields.size(); // field 개수 저장
-            int offset = 5; // pointer(0~3), field 개수(4) 이후부터 저장
+            int offset = Global_Variables.pointer_bytes + Global_Variables.field_num_bytes; // pointer(0~3), field 개수(4) 이후부터 저장
             for(int i = 0 ; i < fields.size() ; i++){
                 System.arraycopy(fields.get(i).getField_name(), 0, block, offset, fields.get(i).getField_name().length);
-                offset += 16;
+                offset += Global_Variables.field_name_bytes;
                 System.arraycopy(fields.get(i).getField_type(), 0, block, offset, fields.get(i).getField_type().length);
-                offset += 8;
+                offset += Global_Variables.field_type_bytes;
                 block[offset] = fields.get(i).getField_order();
-                offset += 1;
+                offset += Global_Variables.field_order_bytes;
             }
 
             io.write(block, file_name + ".txt", 0);
@@ -72,7 +71,7 @@ public class File_Manager {
             if ((bitmap & 1 << 7) != 0) { inv_q(rec_num); error_records.add(rec_num); continue record_loop; }
 
             int field_cnt = fields.size();
-            for (int j = 0; j < 8 && j < field_names.size(); j++) {
+            for (int j = 0; j < Global_Variables.bitmap_bytes * 8 && j < field_names.size(); j++) {
                 if ((bitmap & 1 << (7 - j)) != 0) field_cnt++;
                 else record_size += field_lengths[j];
             }
@@ -115,7 +114,7 @@ public class File_Manager {
         //io.write_block(block, file_name);
 
         //출력해보기 코드
-        for(int i = 0 ; i < records_size - error_records.size(); i++){
+        /*for(int i = 0 ; i < records_size - error_records.size(); i++){
             Record record = records.get(i);
             List<byte[]> fields = record.getFields();
             System.out.print(record.getBitmap() + " : ");
@@ -124,11 +123,9 @@ public class File_Manager {
                 System.out.print(s + " : ");
             }
             System.out.println();
-        }
+        }*/
 
     }
-
-    public static int getBlock_Size(){ return Block_Size; }
     
     public void inv_q(int i) {
         System.out.println("Invalid query at line " + (4 + i));
@@ -136,35 +133,35 @@ public class File_Manager {
 
     private Header_Content read_header(String file_name){
 
-        byte[] header_block = new byte[Block_Size];
+        byte[] header_block = new byte[Global_Variables.Block_Size];
         header_block = io.read(file_name + ".txt", 0);
 
         if(!io.is_file_exist(file_name + ".txt")){
             System.out.println(file_name + " 파일이 존재하지 않음");
             return null;
         }
-        int offset = 4;
+        int offset = Global_Variables.pointer_bytes;
         int field_num = header_block[offset]; // field 개수
-        offset++;
+        offset += Global_Variables.field_num_bytes;
         List<String> field_names = new ArrayList<>();
         int[] field_lengths = new int[field_num];
         byte[] field_orders = new byte[field_num]; // field 개수만큼 order변수 생성
         int order_cnt = 0;
 
         Pattern pattern = Pattern.compile("char\\((\\d+)\\)"); // char(124) -> 124 처럼 char () 내부의 integer 뽑기
-        while(offset < Block_Size){
+        while(offset < Global_Variables.Block_Size){
             // field name 읽기
             String field_name = "";
-            for(int i = offset; i < offset + 16 ; i++){
+            for(int i = offset; i < offset + Global_Variables.field_name_bytes ; i++){
                 if(header_block[i] != 0) field_name += (char)header_block[i];
             }
             if(field_name.equals("")) break;
-            offset += 16;
+            offset += Global_Variables.field_name_bytes;
 
             // field type 읽기
             String field_type = "";
             int length = 0;
-            for(int i = offset ; i < offset + 8 ; i++){
+            for(int i = offset ; i < offset + Global_Variables.field_type_bytes ; i++){
                 if(header_block[i] != 0  && (char)header_block[i] != ',') field_type += (char)header_block[i];
             }
             if(field_type.equals("")) break;
@@ -172,11 +169,11 @@ public class File_Manager {
             if(matcher.find()){
                 length = Integer.parseInt(matcher.group(1));
             }
-            offset += 8;
+            offset += Global_Variables.field_type_bytes;
 
             // field order 읽기
             byte field_order = header_block[offset];
-            offset++;
+            offset += Global_Variables.field_order_bytes;
 
             field_names.add(field_name);
             field_lengths[order_cnt] = length;
