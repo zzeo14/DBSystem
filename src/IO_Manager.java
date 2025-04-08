@@ -118,7 +118,6 @@ public class IO_Manager {
         // 포인터가 모두 결정되어 있으면 포인터 값 그대로 리턴
         if(records.size() == pointers.size()) return pointers;
 ;
-        int now_offset = offset;
         for(int i = 0 ; i < records.size() ; i++){
             // pointer가 정해진 record는 건너뛰기
             if(i < pointers.size()) continue;
@@ -126,21 +125,16 @@ public class IO_Manager {
                 pointers.add(IntToByte(0, Global_Variables.pointer_bytes));
             }
 
+            //TODO : Bug Fix
             Record record = records.get(i);
             int record_length = get_record_length(record, field_lengths);
 
-            int next_offset;
+            pointers.add(IntToByte(offset, Global_Variables.pointer_bytes));
 
-            // 블록 안에 record가 들어가는 경우 = 현재 레코드 시작 주소 + 현재 레코드 길이
-            if(now_offset % Global_Variables.Block_Size < (now_offset + record_length) % Global_Variables.Block_Size) next_offset = now_offset + record_length;
-            // 블록을 넘어가는 경우 = 다음 블록의 첫 주소
-            else {
-                next_offset = ((now_offset / Global_Variables.Block_Size) + 1) * Global_Variables.Block_Size;
-                System.out.println(next_offset);
+            if((offset + record_length) / Global_Variables.Block_Size == offset / Global_Variables.Block_Size) {
+                offset = (offset / (Global_Variables.Block_Size) + 1) * Global_Variables.Block_Size;
             }
-            pointers.add(IntToByte(next_offset, Global_Variables.pointer_bytes));
-
-            now_offset = next_offset;
+            else offset += record_length;
         }
         // 마지막 record의 s_k가 file에서 가장 큰 s_k를 가진 record보다 크다면, 마지막 record의 pointer는 0으로 설정
         if(pointers.size() != records.size()) pointers.add(IntToByte(0, Global_Variables.pointer_bytes));
