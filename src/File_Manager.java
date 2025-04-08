@@ -127,7 +127,9 @@ public class File_Manager {
             // record가 더이상 block에 들어가지 않으면 block 쓰고 초기화
             if(offset + record_size >= Global_Variables.Block_Size){
                 io.write(block, file_name + ".txt", -1); // 파일의 맨 뒤에 write
-                for(byte b : block) b = 0;
+                for(int j = 0 ; j < Global_Variables.Block_Size ; j++) {
+                    block[j] = 0;
+                }
                 offset = 0;
             }
 

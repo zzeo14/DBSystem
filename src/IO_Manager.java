@@ -75,7 +75,8 @@ public class IO_Manager {
     }
 
     public int get_record_length(byte[] bitmap, int[] field_lengths){
-        int length = 0;
+        // default : bitmap과 pointer
+        int length = Global_Variables.bitmap_bytes + Global_Variables.pointer_bytes;
 
         for(int i = 0 ; i < field_lengths.length ; i++){
             int byteIndex = i / 8;
@@ -84,7 +85,7 @@ public class IO_Manager {
             if(byteIndex >= bitmap.length) break;
 
             // i / 8번째 byte의 왼쪽에서 i % 8번째 bit가 1인지 확인
-            boolean isNull = ((bitmap[byteIndex] >> bitIndex) & 1) == 1;
+            boolean isNull = (bitmap[byteIndex] & (1 << (7 - bitIndex))) != 0;
 
             if(!isNull) length += field_lengths[i];
         }
@@ -95,7 +96,7 @@ public class IO_Manager {
     public byte[] IntToByte(int value, int byte_size) {
         byte[] result = new byte[byte_size];
         for(int i = 0 ; i < byte_size ; i++){
-            result[i] = (byte)((value >> (8 * i)) & 0xFF);
+            result[byte_size - 1 - i] = (byte)((value >> (8 * i)) & 0xFF);
         }
         return result;
     }
@@ -104,7 +105,7 @@ public class IO_Manager {
     public int ByteToInt(byte[] bytes) {
         int result = 0;
         for (int i = 0; i < bytes.length; i++) {
-            result |= ((bytes[i] & 0xFF) << (8 * i));
+            result = result << 8 | (bytes[i] & 0xFF);
         }
         return result;
     }
@@ -165,6 +166,7 @@ public class IO_Manager {
     // block 단위로 file을 읽으며, record가 들어올 자리가 있으면 file 내부의 record pointer도 변경 //
     // file의 가장 마지막 record는 0을 기록하여 다음 record가 없음을 나타낸다 //
     public List<byte[]> find_next_pointers(List<Record> records, String path, int[] field_lengths) {
+        if (records.isEmpty()) return null;
         List<byte[]> pointers = new ArrayList<>();
         int search_key_size = field_lengths[0];
 
@@ -181,6 +183,15 @@ public class IO_Manager {
 
                 blocks.add(block);
             }
+
+            // 헤더블록 하나만 존재하는 경우, header block의 pointer를 input record의 첫 record로 할당
+            // 헤더블록을 disk에 write하고, input record들은 각자 연속적으로 pointer를 가지도록 return
+            if(blocks.size() == 1){
+                System.arraycopy(IntToByte(Global_Variables.Block_Size, Global_Variables.pointer_bytes), 0, blocks.getFirst(), 0, Global_Variables.pointer_bytes);
+                write(blocks.getFirst(), path, 0);
+                return determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
+            }
+
             byte[] header_block_pointer = new byte[Global_Variables.pointer_bytes];
             System.arraycopy(blocks.getFirst(), 0, header_block_pointer, 0, Global_Variables.pointer_bytes);
 
@@ -194,11 +205,7 @@ public class IO_Manager {
             int bef_record_block_num = 0;
             int bef_record_block_offset = 0;
 
-            // 헤더블록이 비어있으면 input 그대로 포인터 결정
-            // if(current_record_offset == 0) return determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
-
             int my_record_num = 0;
-            Boolean flag = true;
             // 각 record마다 자신이 들어갈 위치 찾기
             while(my_record_num < records.size()){
                 Record record = records.get(my_record_num);
@@ -230,12 +237,18 @@ public class IO_Manager {
                     // before record offset, current record offset 업데이트
                     before_record_offset = current_record_offset;
 
-                    byte[] current_record_bitmap = new byte[Global_Variables.bitmap_bytes];
                     byte[] current_block = blocks.get(cur_record_block_num);
+                    byte[] current_record_bitmap = new byte[Global_Variables.bitmap_bytes];
+                    System.arraycopy(current_block, cur_record_block_offset, current_record_bitmap, 0, Global_Variables.bitmap_bytes);
                     int current_record_length = get_record_length(current_record_bitmap, field_lengths);
                     int current_record_pointer_offset = current_record_offset + current_record_length - Global_Variables.pointer_bytes;
-                    System.arraycopy(current_block, current_record_pointer_offset, current_record_offset, 0, Global_Variables.pointer_bytes);
 
+                    System.out.println("current_record_pointer_offset: " + current_record_pointer_offset);
+                    byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
+                    System.arraycopy(current_block, current_record_pointer_offset % Global_Variables.Block_Size, next_record_offset, 0, Global_Variables.pointer_bytes);
+                    current_record_offset = ByteToInt(next_record_offset);
+                    System.out.println(next_record_offset[0] + " " + next_record_offset[1] + " " + next_record_offset[2] + " " + next_record_offset[3]);
+                    System.out.println("current_record_offset: " + current_record_offset);
                 }
                 my_record_num++;
             }
@@ -245,7 +258,7 @@ public class IO_Manager {
             // block들 파일에 쓰기
             System.out.println("n_th_block = " + n_th_block);
             for(int i = 0 ; i < n_th_block ; i++){
-                write(blocks.get(i), path, Global_Variables.Block_Size * n_th_block);
+                write(blocks.get(i), path, Global_Variables.Block_Size * i);
             }
         }
         catch (IOException e){
