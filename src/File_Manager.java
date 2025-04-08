@@ -111,7 +111,7 @@ public class File_Manager {
         // 입력한 record들 정렬
         Collections.sort(records);
 
-        //TODO : pointer값 가져오기 (함수 내부에서 file에 저장되어 있는 record들의 포인터도 조정함)
+        // pointer값 가져오기 (함수 내부에서 file에 저장되어 있는 record들의 포인터도 조정함)
         List<byte[]> pointers = io.find_next_pointer(records, file_name, field_lengths);
 
         //TODO : record를 file에 write
