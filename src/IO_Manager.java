@@ -1,4 +1,5 @@
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
@@ -223,15 +224,24 @@ public class IO_Manager {
                     if(Arrays.compare(my_record_search_key, current_record_search_key) <= 0){
                         byte[] my_record_offset_byte = IntToByte(my_record_offset, Global_Variables.pointer_bytes);
 
+                        byte[] before_block = blocks.get(bef_record_block_num);
+                        byte[] before_record_bitmap = new byte[Global_Variables.bitmap_bytes];
+                        System.arraycopy(before_block, cur_record_block_offset, before_record_bitmap, 0, Global_Variables.bitmap_bytes);
+                        int before_record_length = get_record_length(before_record_bitmap, field_lengths);
                         // search key가 마지막으로 작았던 file record의 pointer를 my record의 주소로 업데이트
-                        System.arraycopy(my_record_offset_byte, 0, blocks.get(bef_record_block_num), bef_record_block_offset, Global_Variables.pointer_bytes);
+                        System.arraycopy(my_record_offset_byte, 0, blocks.get(bef_record_block_num), bef_record_block_offset + before_record_length - Global_Variables.pointer_bytes, Global_Variables.pointer_bytes);
 
                         // input record들 중에서 현재 file record보다 search key가 작은 모든 record를 찾아 pointers에 추가
                         List<byte[]> less_records = take_less_records(records, my_record_num, current_record_search_key, my_record_offset, field_lengths);
                         less_records.add(IntToByte(current_record_offset, Global_Variables.pointer_bytes));
                         pointers.addAll(less_records);
 
-                        my_record_num = pointers.size(); // 업데이트할 record number는 채워진 pointer 배열의 원소 개수와 같음
+                        // 업데이트할 record 번호는 채워진 pointer 배열의 원소 개수와 같음
+                        for(int k = 0 ; k < pointers.size() - my_record_num ; k++){
+                            my_record_num++;
+                            record = records.get(my_record_num);
+                            my_record_offset += get_record_length(record, field_lengths);
+                        }
                     }
 
                     // before record offset, current record offset 업데이트
@@ -251,6 +261,7 @@ public class IO_Manager {
                     System.out.println("current_record_offset: " + current_record_offset);
                 }
                 my_record_num++;
+                my_record_offset += get_record_length(record, field_lengths);
             }
 
             pointers = determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
