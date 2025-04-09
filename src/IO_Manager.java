@@ -231,59 +231,55 @@ public class IO_Manager {
 
             int my_record_num = 0;
             // 각 record마다 자신이 들어갈 위치 찾기
-            while(my_record_num < records.size()){
+            while(my_record_num < records.size() && current_record_offset != 0){
                 Record record = records.get(my_record_num);
                 // file의 record를 순서대로, 마지막 record까지 탐색 (마지막 record의 pointer offset == 0)
-                while(current_record_offset != 0){
-                    cur_record_block_num = current_record_offset / Global_Variables.Block_Size;        // 레코드가 들어간 블록 번호
-                    cur_record_block_offset = current_record_offset % Global_Variables.Block_Size;     // 레코드가 블록 내에서 갖는 논리적 주소 (0 ~ block_size - 1)
-                    bef_record_block_num = before_record_offset / Global_Variables.Block_Size;
-                    bef_record_block_offset = before_record_offset % Global_Variables.Block_Size;
+                cur_record_block_num = current_record_offset / Global_Variables.Block_Size;        // 레코드가 들어간 블록 번호
+                cur_record_block_offset = current_record_offset % Global_Variables.Block_Size;     // 레코드가 블록 내에서 갖는 논리적 주소 (0 ~ block_size - 1)
+                bef_record_block_num = before_record_offset / Global_Variables.Block_Size;
+                bef_record_block_offset = before_record_offset % Global_Variables.Block_Size;
 
-                    byte[] my_record_search_key = record.getFields().getFirst();
-                    byte[] current_record_search_key = find_search_key(blocks.get(cur_record_block_num), cur_record_block_offset, search_key_size);
+                byte[] my_record_search_key = record.getFields().getFirst();
+                byte[] current_record_search_key = find_search_key(blocks.get(cur_record_block_num), cur_record_block_offset, search_key_size);
 
-                    // my record의 search key가 탐색하는 record의 search key보다 작은 경우
-                    if(Arrays.compare(my_record_search_key, current_record_search_key) <= 0){
-                        byte[] my_record_offset_byte = IntToByte(my_record_offset, Global_Variables.pointer_bytes);
+                // my record의 search key가 탐색하는 record의 search key보다 작은 경우
+                if (Arrays.compare(my_record_search_key, current_record_search_key) <= 0) {
+                    byte[] my_record_offset_byte = IntToByte(my_record_offset, Global_Variables.pointer_bytes);
 
-                        byte[] before_block = blocks.get(bef_record_block_num);
-                        byte[] before_record_bitmap = new byte[Global_Variables.bitmap_bytes];
-                        System.arraycopy(before_block, bef_record_block_offset, before_record_bitmap, 0, Global_Variables.bitmap_bytes);
-                        int before_record_length = get_record_length(before_record_bitmap, field_lengths);
-                        // search key가 마지막으로 작았던 file record의 pointer를 my record의 주소로 업데이트
-                        if(bef_record_block_num == 0 && bef_record_block_offset == 0) System.arraycopy(my_record_offset_byte, 0, blocks.getFirst(), 0, Global_Variables.pointer_bytes);
-                        else System.arraycopy(my_record_offset_byte, 0, blocks.get(bef_record_block_num), bef_record_block_offset + before_record_length - Global_Variables.pointer_bytes, Global_Variables.pointer_bytes);
+                    byte[] before_block = blocks.get(bef_record_block_num);
+                    byte[] before_record_bitmap = new byte[Global_Variables.bitmap_bytes];
+                    System.arraycopy(before_block, bef_record_block_offset, before_record_bitmap, 0, Global_Variables.bitmap_bytes);
+                    int before_record_length = get_record_length(before_record_bitmap, field_lengths);
+                    // search key가 마지막으로 작았던 file record의 pointer를 my record의 주소로 업데이트
+                    if (bef_record_block_num == 0 && bef_record_block_offset == 0) // 헤더인 경우
+                        System.arraycopy(my_record_offset_byte, 0, blocks.getFirst(), 0, Global_Variables.pointer_bytes);
+                    else // 아닌 경우
+                        System.arraycopy(my_record_offset_byte, 0, blocks.get(bef_record_block_num), bef_record_block_offset + before_record_length - Global_Variables.pointer_bytes, Global_Variables.pointer_bytes);
 
-                        // input record들 중에서 현재 file record보다 search key가 작은 모든 record를 찾아 pointers에 추가
-                        List<byte[]> less_records = take_less_records(records, my_record_num, current_record_offset, current_record_search_key, my_record_offset, field_lengths);
-                        less_records.add(IntToByte(current_record_offset, Global_Variables.pointer_bytes));
-                        pointers.addAll(less_records);
+                    // input record들 중에서 현재 file record보다 search key가 작은 모든 record를 찾아 pointers에 추가
+                    List<byte[]> less_records = take_less_records(records, my_record_num, current_record_offset, current_record_search_key, my_record_offset, field_lengths);
+                    pointers.addAll(less_records);
 
-                        // 업데이트할 record 번호는 채워진 pointer 배열의 원소 개수와 같음
-                        for(int k = 0 ; k < pointers.size() - my_record_num - 1 ; k++){
-                            my_record_num++;
-                            if(my_record_num >= records.size()) break;
-                            record = records.get(my_record_num);
-                            my_record_offset += get_record_length(record, field_lengths);
-                        }
+                    // 업데이트할 record 번호는 채워진 pointer 배열의 원소 개수와 같음
+                    for (int k = 0; k < pointers.size() - my_record_num - 1; k++) {
+                        my_record_num++;
+                        if (my_record_num >= records.size()) break;
+                        my_record_offset += get_record_length(record, field_lengths);
                     }
-
-                    // before record offset, current record offset 업데이트
-                    before_record_offset = current_record_offset;
-
-                    byte[] current_block = blocks.get(cur_record_block_num);
-                    byte[] current_record_bitmap = new byte[Global_Variables.bitmap_bytes];
-                    System.arraycopy(current_block, cur_record_block_offset, current_record_bitmap, 0, Global_Variables.bitmap_bytes);
-                    int current_record_length = get_record_length(current_record_bitmap, field_lengths);
-                    int current_record_pointer_offset = current_record_offset + current_record_length - Global_Variables.pointer_bytes;
-
-                    byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
-                    System.arraycopy(current_block, current_record_pointer_offset % Global_Variables.Block_Size, next_record_offset, 0, Global_Variables.pointer_bytes);
-                    current_record_offset = ByteToInt(next_record_offset);
                 }
-                my_record_num++;
-                my_record_offset += get_record_length(record, field_lengths);
+
+                // before record offset, current record offset 업데이트
+                before_record_offset = current_record_offset;
+
+                byte[] current_block = blocks.get(cur_record_block_num);
+                byte[] current_record_bitmap = new byte[Global_Variables.bitmap_bytes];
+                System.arraycopy(current_block, cur_record_block_offset, current_record_bitmap, 0, Global_Variables.bitmap_bytes);
+                int current_record_length = get_record_length(current_record_bitmap, field_lengths);
+                int current_record_pointer_offset = current_record_offset + current_record_length - Global_Variables.pointer_bytes;
+
+                byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
+                System.arraycopy(current_block, current_record_pointer_offset % Global_Variables.Block_Size, next_record_offset, 0, Global_Variables.pointer_bytes);
+                current_record_offset = ByteToInt(next_record_offset);
             }
 
             pointers = determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
