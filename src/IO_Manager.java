@@ -123,18 +123,25 @@ public class IO_Manager {
             if(i < pointers.size()) continue;
             if(i == records.size() - 1 && records.size() != pointers.size()) {
                 pointers.add(IntToByte(0, Global_Variables.pointer_bytes));
+                return pointers;
             }
 
-            //TODO : Bug Fix
             Record record = records.get(i);
+            Record next_record = records.get(i + 1);
+
             int record_length = get_record_length(record, field_lengths);
+            int next_record_length = get_record_length(next_record, field_lengths);
 
-            pointers.add(IntToByte(offset, Global_Variables.pointer_bytes));
+            System.out.println("offset: " + offset + " record_length: " + record_length + " next_record_length: " + next_record_length);
 
-            if((offset + record_length) / Global_Variables.Block_Size == offset / Global_Variables.Block_Size) {
+            if((offset + record_length + next_record_length) / Global_Variables.Block_Size > (offset + record_length) /Global_Variables.Block_Size) {
                 offset = (offset / (Global_Variables.Block_Size) + 1) * Global_Variables.Block_Size;
             }
             else offset += record_length;
+
+            System.out.println("after offset: " + offset);
+
+            pointers.add(IntToByte(offset, Global_Variables.pointer_bytes));
         }
         // 마지막 record의 s_k가 file에서 가장 큰 s_k를 가진 record보다 크다면, 마지막 record의 pointer는 0으로 설정
         if(pointers.size() != records.size()) pointers.add(IntToByte(0, Global_Variables.pointer_bytes));
@@ -154,10 +161,20 @@ public class IO_Manager {
     public List<byte[]> take_less_records(List<Record> records, int record_num, byte[] current_record_search_key, int offset, int[] field_lengths){
         List<byte[]> ret_value = new ArrayList<>();
 
+        // TODO: 현재 record가 아니라 next record 기준으로 삽입할 것0................................................
         for(int i = record_num + 1; i < records.size(); i++){
             Record record = records.get(i);
             if(Arrays.compare(record.getFields().getFirst(), current_record_search_key) <= 0){
-                ret_value.add(IntToByte(offset, Global_Variables.pointer_bytes)); // 자신의 주소를 넣음: 이전 record의 pointer가 됨
+                int record_length = get_record_length(record, field_lengths);
+                if((offset + record_length) / Global_Variables.Block_Size > (offset / Global_Variables.Block_Size)) {
+                    int next_record_offset = ((offset / Global_Variables.Block_Size) + 1 ) * Global_Variables.Block_Size;
+                    ret_value.add(IntToByte(next_record_offset, Global_Variables.pointer_bytes));
+                    offset = next_record_offset;
+                }
+                else {
+                    ret_value.add(IntToByte(offset, Global_Variables.pointer_bytes)); // 자신의 주소를 넣음: 이전 record의 pointer가 됨
+                    offset += record_length;
+                }
             }
             else break;
         }
