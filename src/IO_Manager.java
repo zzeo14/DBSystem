@@ -214,8 +214,8 @@ public class IO_Manager {
             while (true) {
                 int Block_number = record_offset / Global_Variables.Block_Size;
                 int offset_in_block = record_offset % Global_Variables.Block_Size;
-                System.out.println("Block number: " + Block_number + " offset: " + offset_in_block);
-                System.out.println("record_offset: " + record_offset + ", before block number: " + before_block_number + ", before block offset: " + before_block_offset + ", before block pointer offset: " + before_block_pointer_offset);
+                //System.out.println("Block number: " + Block_number + " offset: " + offset_in_block);
+                //System.out.println("record_offset: " + record_offset + ", before block number: " + before_block_number + ", before block offset: " + before_block_offset + ", before block pointer offset: " + before_block_pointer_offset);
 
                 byte[] my_search_key = record.getFields().getFirst();
                 byte[] file_search_key = find_search_key(blocks[Block_number], offset_in_block, my_search_key.length);
@@ -340,13 +340,13 @@ public class IO_Manager {
                         blocks[block_num] = new byte[Global_Variables.Block_Size];
 
                         // 이전레코드에 내 주소 쓰기
+                        my_record_offset = block_num * Global_Variables.Block_Size;
                         System.arraycopy(IntToByte(my_record_offset, Global_Variables.pointer_bytes), 0, blocks[before_block_number], before_block_pointer_offset, Global_Variables.pointer_bytes);
 
                         // block에 복사
                         System.arraycopy(new_record, 0, blocks[block_num], 0, my_record_length);
 
                         my_record_block_number = block_num;
-                        my_record_offset = block_num * Global_Variables.Block_Size;
                     }
                     else{
                         System.out.println("Hello 4");
@@ -373,6 +373,7 @@ public class IO_Manager {
 
     public void insert_records(List<Record> records, String path, int[] field_lengths) {
         for (int i = 0 ; i < records.size() ;i++) {
+            System.out.println("record " + i);
             insert_record(records.get(i), path, field_lengths);
         }
     }
