@@ -2,7 +2,6 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.io.IOException;
 import java.util.regex.Pattern;
@@ -24,8 +23,11 @@ public class File_Manager {
             }
 
             List<Fields> fields = metadata.getFields();
-            block[4] = (byte)fields.size(); // field 개수 저장
-            int offset = Global_Variables.pointer_bytes + Global_Variables.field_num_bytes; // pointer(0~3), field 개수(4) 이후부터 저장
+            byte[] field_num = io.IntToByte(fields.size(), Global_Variables.field_num_bytes);
+            System.arraycopy(field_num, 0, block, Global_Variables.pointer_bytes, Global_Variables.field_num_bytes);
+
+            // block 개수는 header를 제외하고 0이므로 입력하지 않음
+            int offset = Global_Variables.pointer_bytes + Global_Variables.field_num_bytes + Global_Variables.Block_number_bytes; // pointer(0~3), field 개수(4) 이후부터 저장
             for(int i = 0 ; i < fields.size() ; i++){
                 System.arraycopy(fields.get(i).getField_name(), 0, block, offset, fields.get(i).getField_name().length);
                 offset += Global_Variables.field_name_bytes;
@@ -51,6 +53,7 @@ public class File_Manager {
             return;
         }
         int field_num = header_content.getFieldNum();
+        int block_num = header_content.getBlock_number();
         int[] field_lengths = header_content.getFieldLengths();
         List<String> field_names = header_content.getFieldNames();
         byte[] field_orders = header_content.getFieldOrders();
@@ -58,7 +61,6 @@ public class File_Manager {
         // 각 record에 대해 record_loop 수행
         int records_size = records.size();
         List<Integer> error_records = new ArrayList<>();
-
         record_loop:
         for(int rec_num = 0 ; rec_num < records_size ; rec_num++) {
             int record_size = Global_Variables.bitmap_bytes + Global_Variables.pointer_bytes; // 1 bit : bitmap size, 4 bit : pointer size
@@ -91,14 +93,12 @@ public class File_Manager {
                     null_cnt++;
                     continue;
                 }
-
                 if (fields.get(j - null_cnt).length != field_lengths[j]) {
                     String a = new String(fields.get(j), StandardCharsets.US_ASCII);
-                    System.out.println(a);
                     inv_q(rec_num);
                     error_records.add(rec_num);
                     continue record_loop;
-                }
+                };
             }
         }
 
@@ -111,57 +111,30 @@ public class File_Manager {
         // 입력한 record들 정렬
         Collections.sort(records);
 
-        // pointer값 가져오기 (함수 내부에서 file에 저장되어 있는 record들의 포인터도 조정함)
-        List<byte[]> pointers = io.find_next_pointers(records, file_name + ".txt", field_lengths);
-        if(pointers.size() != records.size()){
-            pointers.add(io.IntToByte(0, Global_Variables.pointer_bytes));
-        }
-
-        // record를 file에 write
-        byte[] block = new byte[Global_Variables.Block_Size];
-        int offset = 0;
-        for(int i = 0 ; i < records.size() ; i++){
-            Record record = records.get(i);
-            int record_size = io.get_record_length(record, field_lengths);
-
-            // record가 더이상 block에 들어가지 않으면, block 쓰고 초기화
-            // block의 마지막 record에 있는 포인터를 그 다음 block의 첫 record의 offset으로 변경해줌
-            if(offset + record_size >= Global_Variables.Block_Size){
-                io.write(block, file_name + ".txt", -1); // 파일의 맨 뒤에 write
-                for(int j = 0 ; j < Global_Variables.Block_Size ; j++) {
-                    block[j] = 0;
-                }
-                offset = 0;
-            }
-
-            // bitmap 입력
-            System.arraycopy(record.getBitmap(), 0, block, offset, Global_Variables.bitmap_bytes);
-            offset += Global_Variables.bitmap_bytes;
-            List<byte[]> fields = record.getFields();
-            // 각 field 입력
-            for(int j = 0 ; j < fields.size() ; j++) {
-                System.arraycopy(fields.get(j), 0, block, offset, fields.get(j).length);
-                offset += fields.get(j).length;
-            }
-
-            System.arraycopy(pointers.get(i), 0, block, offset, Global_Variables.pointer_bytes);
-            offset += Global_Variables.pointer_bytes;
-        }
-        io.write(block, file_name + ".txt", -1);
+        io.insert_records(records, file_name + ".txt", field_lengths);
     }
 
     private Header_Content read_header(String file_name){
 
-        byte[] header_block = new byte[Global_Variables.Block_Size];
+        byte[] header_block;
         header_block = io.read(file_name + ".txt", 0);
 
         if(!io.is_file_exist(file_name + ".txt")){
             System.out.println(file_name + " 파일이 존재하지 않음");
             return null;
         }
+
         int offset = Global_Variables.pointer_bytes;
-        int field_num = header_block[offset]; // field 개수
+        byte[] field_number = new byte[Global_Variables.field_num_bytes];
+        System.arraycopy(header_block, offset, field_number, 0, Global_Variables.field_num_bytes);
+        int field_num = io.ByteToInt(field_number); // field 개수
+
         offset += Global_Variables.field_num_bytes;
+        byte[] block_number = new byte[Global_Variables.Block_number_bytes];
+        System.arraycopy(header_block, offset, block_number, 0, Global_Variables.Block_number_bytes);
+        int block_num = io.ByteToInt(block_number); // block 개수
+
+        offset += Global_Variables.Block_number_bytes;
         List<String> field_names = new ArrayList<>();
         int[] field_lengths = new int[field_num];
         byte[] field_orders = new byte[field_num]; // field 개수만큼 order변수 생성
@@ -201,6 +174,7 @@ public class File_Manager {
 
         // return값 저장
         Header_Content header_content = new Header_Content();
+        header_content.Setblock_number(block_num);
         header_content.SetFieldNum(field_num);
         header_content.SetField_names(field_names);
         header_content.SetField_lengths(field_lengths);

@@ -16,6 +16,7 @@ public class Main {
             System.out.println("1 : Query");
             System.out.println("2 : Quit");
 
+
             System.out.print("Select Option 1 or 2 >> ");
             Scanner sc = new Scanner(System.in);
             String option = sc.nextLine();

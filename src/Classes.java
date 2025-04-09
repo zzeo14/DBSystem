@@ -9,6 +9,7 @@ class Global_Variables {
     public static final int field_name_bytes = 16;
     public static final int field_type_bytes = 8;
     public static final int field_order_bytes = 1;
+    public static final int Block_number_bytes = 4;
 }
 
 class Fields {
@@ -86,6 +87,7 @@ class Record implements Comparable<Record>{
 
 class Header_Content {
     private int field_num;
+    private int block_number;
     private List<String> field_names = new ArrayList<>();
     private int[] field_lengths;
     private byte[] field_orders;
@@ -94,9 +96,11 @@ class Header_Content {
     public void SetField_names(List<String> field_names) { this.field_names = field_names; }
     public void SetField_lengths(int[] field_lengths) { this.field_lengths = field_lengths; }
     public void SetField_orders(byte[] field_orders) { this.field_orders = field_orders; }
+    public void Setblock_number(int block_number) { this.block_number = block_number; }
 
     public int getFieldNum() { return field_num; }
     public List<String> getFieldNames() { return field_names; }
     public int[] getFieldLengths() { return field_lengths; }
     public byte[] getFieldOrders() { return field_orders; }
+    public int getBlock_number() { return block_number; }
 }

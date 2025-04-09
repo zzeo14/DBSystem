@@ -1,24 +1,19 @@
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.RandomAccess;
+import java.util.*;
 
 public class IO_Manager {
 
     public void write(byte[] s, String path, long offset) {
         try {
             RandomAccessFile file = new RandomAccessFile(path, "rw");
-            if(offset == -1)  file.seek(file.length());
+            if (offset == -1) file.seek(file.length());
             else file.seek(offset);
             file.write(s);
 
             file.close();
-        }
-        catch(IOException e){
+        } catch (IOException e) {
             System.out.println("IO Exception 발생");
             e.printStackTrace();
         }
@@ -33,13 +28,12 @@ public class IO_Manager {
         return ret_bytes;
     }
 
-    public byte[] read(String path, long offset){
+    public byte[] read(String path, long offset) {
         byte[] ret_bytes = new byte[Global_Variables.Block_Size];
-        try{
+        try {
             RandomAccessFile file = new RandomAccessFile(path, "rw");
             ret_bytes = read(file, offset);
-        }
-        catch (IOException e){
+        } catch (IOException e) {
             System.out.println("IO Exception 발생");
             e.printStackTrace();
         }
@@ -49,20 +43,6 @@ public class IO_Manager {
     public boolean is_file_exist(String path) {
         File file = new File(path);
         return file.exists();
-    }
-
-    public boolean is_header_pointer_filled(RandomAccessFile file) throws IOException {
-        byte[] header_block = new byte[Global_Variables.Block_Size];
-        file.seek(0);
-        file.read(header_block);
-
-        for(int i = 0 ; i < Global_Variables.pointer_bytes ; i++){
-            if(header_block[i] != 0) {
-                System.out.println(header_block[i]);
-                return true;
-            }
-        }
-        return false;
     }
 
     // 현재 record의 길이를 찾는 method             //
@@ -75,18 +55,18 @@ public class IO_Manager {
         return get_record_length(bitmap, field_lengths);
     }
 
-    public int get_record_length(byte[] bitmap, int[] field_lengths){
+    public int get_record_length(byte[] bitmap, int[] field_lengths) {
         // default : bitmap과 pointer
         int length = Global_Variables.bitmap_bytes + Global_Variables.pointer_bytes;
 
-        for(int i = 0 ; i < field_lengths.length ; i++){
+        for (int i = 0; i < field_lengths.length; i++) {
             int byteIndex = i / 8;
             int bitIndex = i % 8;
 
             // i / 8번째 byte의 왼쪽에서 i % 8번째 bit가 1인지 확인
             boolean isNull = (bitmap[byteIndex] & (1 << (7 - bitIndex))) != 0;
 
-            if(!isNull) length += field_lengths[i];
+            if (!isNull) length += field_lengths[i];
         }
         return length;
     }
@@ -94,8 +74,8 @@ public class IO_Manager {
     // integer를 byte 배열로 변환
     public byte[] IntToByte(int value, int byte_size) {
         byte[] result = new byte[byte_size];
-        for(int i = 0 ; i < byte_size ; i++){
-            result[byte_size - 1 - i] = (byte)((value >> (8 * i)) & 0xFF);
+        for (int i = 0; i < byte_size; i++) {
+            result[byte_size - 1 - i] = (byte) ((value >> (8 * i)) & 0xFF);
         }
         return result;
     }
@@ -109,191 +89,266 @@ public class IO_Manager {
         return result;
     }
 
-    // input record들 중 포인터가 정해지지 않은 record의 포인터 결정 함수
-    // 현재 record가 바로 다음 record의 주소를 가리킴.
-    // records: 입력 레코드 리스트
-    // pointers: 호출한 시점에서 정해진 레코드들의 포인터 리스트
-    // offset: pointers에 n개의 주소가 있다고 할 때, n+1번째 record의 주소
-    public List<byte[]> determine_pointers(List<Record> records, List<byte[]> pointers, int offset, int[] field_lengths){
-        // 포인터가 모두 결정되어 있으면 포인터 값 그대로 리턴
-        if(records.size() == pointers.size()) return pointers;
-;
-        for(int i = 0 ; i < records.size() ; i++){
-            // pointer가 정해진 record는 건너뛰기
-            if(i < pointers.size()) continue;
-            if(i == records.size() - 1 && records.size() != pointers.size()) {
-                pointers.add(IntToByte(0, Global_Variables.pointer_bytes));
-                return pointers;
-            }
-
-            Record record = records.get(i);
-            Record next_record = records.get(i + 1);
-
-            int record_length = get_record_length(record, field_lengths);
-            int next_record_length = get_record_length(next_record, field_lengths);
-
-            System.out.println("offset: " + offset + " record_length: " + record_length + " next_record_length: " + next_record_length);
-
-            if((offset + record_length + next_record_length) / Global_Variables.Block_Size > (offset + record_length) /Global_Variables.Block_Size) {
-                offset = (offset / (Global_Variables.Block_Size) + 1) * Global_Variables.Block_Size;
-            }
-            else offset += record_length;
-
-            System.out.println("after offset: " + offset);
-
-            pointers.add(IntToByte(offset, Global_Variables.pointer_bytes));
-        }
-        // 마지막 record의 s_k가 file에서 가장 큰 s_k를 가진 record보다 크다면, 마지막 record의 pointer는 0으로 설정
-        if(pointers.size() != records.size()) pointers.add(IntToByte(0, Global_Variables.pointer_bytes));
-
-        return pointers;
-    }
-
     // record의 위치를 이용해 해당 record의 search key를 반환
-    public byte[] find_search_key(byte[] block, int block_offset, int search_key_size){
+    public byte[] find_search_key(byte[] block, int block_offset, int search_key_size) {
         byte[] ret_value = new byte[search_key_size];
         System.arraycopy(block, block_offset + Global_Variables.bitmap_bytes, ret_value, 0, search_key_size);
         return ret_value;
     }
 
-    // record가 file의 record보다 search key가 작은 경우, input record들이 연속적으로 file의 search key보다 작은 것을 대비하는 함수
-    // 연속적으로 작다면, input record가 연속적으로 pointer를 갖게 되고, 마지막으로 작은 record가 file의 record를 가리키게 됨.
-    public List<byte[]> take_less_records(List<Record> records, int record_num, int current_record_offset, byte[] current_record_search_key, int offset, int[] field_lengths){
-        List<byte[]> ret_value = new ArrayList<>();
+    public void insert_first_record(Record record, byte[] header, String path, int[] field_lengths) {
+        // 새로운 블록 위치 저장
+        int record_offset = Global_Variables.Block_Size;
+        System.arraycopy(IntToByte(record_offset, Global_Variables.pointer_bytes), 0, header, 0, Global_Variables.pointer_bytes);
 
-        for(int i = record_num; i < records.size() - 1 ; i++){
-            Record record = records.get(i);
-            Record next_record = records.get(i + 1);
-            if(Arrays.compare(next_record.getFields().getFirst(), current_record_search_key) <= 0){
-                int record_length = get_record_length(record, field_lengths);
-                int next_record_lengtth = get_record_length(next_record, field_lengths);
-                if((offset + record_length + record_length) / Global_Variables.Block_Size > (offset + record_length / Global_Variables.Block_Size)) {
-                    int next_record_offset = ((offset / Global_Variables.Block_Size) + 1 ) * Global_Variables.Block_Size;
-                    ret_value.add(IntToByte(next_record_offset, Global_Variables.pointer_bytes));
-                    offset = next_record_offset;
-                }
-                else {
-                    offset += record_length;
-                    ret_value.add(IntToByte(offset, Global_Variables.pointer_bytes)); // 자신의 주소를 넣음: 이전 record의 pointer가 됨
-                }
-            }
-            else break;
+        // 블록 개수 1로 지정
+        byte[] block_number = IntToByte(1, Global_Variables.Block_number_bytes);
+        System.arraycopy(block_number, 0, header, Global_Variables.field_num_bytes + Global_Variables.pointer_bytes, Global_Variables.Block_number_bytes);
+        write(header, path, 0);
+
+        byte[] new_block = new byte[Global_Variables.Block_Size];
+        byte[] bitmap = record.getBitmap();
+
+        // bitmap 입력
+        int offset = 0;
+        System.arraycopy(bitmap, 0, new_block, offset, Global_Variables.bitmap_bytes);
+        offset += Global_Variables.bitmap_bytes;
+
+        // field 입력
+        List<byte[]> fields = record.getFields();
+        for (int i = 0; i < fields.size(); i++) {
+            byte[] field = fields.get(i);
+            System.arraycopy(field, 0, new_block, offset, field.length);
+            offset += field.length;
         }
-
-        // 마지막으로 current record주소 삽입
-        ret_value.add(IntToByte(current_record_offset, Global_Variables.pointer_bytes));
-
-        return ret_value;
+        write(new_block, path, Global_Variables.Block_Size);
     }
 
-    // 주어진 input record들의 next record pointer를 지정하는 함수 //
-    // block 단위로 file을 읽으며, record가 들어올 자리가 있으면 file 내부의 record pointer도 변경 //
-    // file의 가장 마지막 record는 0을 기록하여 다음 record가 없음을 나타낸다 //
-    public List<byte[]> find_next_pointers(List<Record> records, String path, int[] field_lengths) {
-        if (records.isEmpty()) return null;
-        List<byte[]> pointers = new ArrayList<>();
-        int search_key_size = field_lengths[0];
+    // block들 중에서 record 길이만큼 비어있는 공간을 찾음.
+    // 비어있는 block이 하나도 없다면, -1 return
+    public int find_my_offset(byte[][] blocks, Boolean[] check, int record_length, int[] field_lengths) {
+        for (int i = 1; i < blocks.length; i++) {
+            if (!check[i]) continue;
 
-        List<byte[]> blocks = new ArrayList<>();
+            int offset = 0;
+            while(true){
+                byte[] bitmap = new byte[Global_Variables.bitmap_bytes];
+                System.arraycopy(blocks[i], offset, bitmap, 0, Global_Variables.bitmap_bytes);
+                int length = get_record_length(bitmap, field_lengths);
 
-        try{
+                // 레코드가 없는 부분 판단 후 블록에 길이 측정 -> 넣을 수 있는지 판단 후 return
+                Boolean is_exist_nonzero = false;
+                for(int j = offset ; j < offset + length && j < Global_Variables.Block_Size ; j++){
+                    if(blocks[i][j] != 0) is_exist_nonzero = true;
+                }
+                if(!is_exist_nonzero){
+
+                    int k = (Global_Variables.Block_Size - 1) - offset; // 남은 byte 수
+                    if(k >= record_length) return Global_Variables.Block_Size * i + offset;
+                    else break;
+                }
+                else{
+                    offset += length;
+                }
+            }
+        }
+        return -1;
+    }
+
+    // block size를 1만큼 증가시킬 때 헤더의 block 개수를 업데이트하는 method
+    public void update_header_with_new_block(byte[] header, String path){
+        int offset = Global_Variables.pointer_bytes + Global_Variables.field_num_bytes;
+        byte[] block_num = new byte[Global_Variables.Block_number_bytes];
+
+        System.arraycopy(header, offset, block_num, 0, Global_Variables.Block_number_bytes);
+        int new_block_num = ByteToInt(block_num) + 1; // 1만큼 증가
+
+        block_num = IntToByte(new_block_num, Global_Variables.Block_number_bytes);
+        System.arraycopy(block_num, 0, header, offset, Global_Variables.Block_number_bytes);
+
+        write(header, path, 0);
+    }
+
+    public void insert_record(Record record, String path, int[] field_lengths) {
+        try {
             RandomAccessFile file = new RandomAccessFile(path, "rw");
-            // blocks 0 : 헤더블록     blocks 1 ~ blocks n : 레코드를 가진 블록
-            int n_th_block = 0;                                              // loop가 끝나면 n_th_block에는 총 block 개수가 저장됨
-            for(n_th_block = 0 ; ; n_th_block++){
-                file.seek(n_th_block * Global_Variables.Block_Size);    // n번째 블록 offset 설정
-                byte[] block = new byte[Global_Variables.Block_Size];        // n번째 블록 가져오기
-                if(file.read(block) == -1) break;
+            byte[] header;
+            header = read(file, 0);
 
-                blocks.add(block);
+            Boolean has_first_record = false;
+            for (int i = 0; i < Global_Variables.pointer_bytes; i++) {
+                if (header[i] != 0) has_first_record = true;
             }
 
-            // 헤더블록 하나만 존재하는 경우, header block의 pointer를 input record의 첫 record로 할당
-            // 헤더블록을 disk에 write하고, input record들은 각자 연속적으로 pointer를 가지도록 return
-            if(blocks.size() == 1){
-                System.arraycopy(IntToByte(Global_Variables.Block_Size, Global_Variables.pointer_bytes), 0, blocks.getFirst(), 0, Global_Variables.pointer_bytes);
-                write(blocks.getFirst(), path, 0);
-                return determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
+            // 헤더블록만 있으면 헤더블록에 포인터 설정하고 새로운 블록을 만들어서 disk에 write
+            if (!has_first_record) {
+                insert_first_record(record, header, path, field_lengths);
+                return;
             }
 
-            byte[] header_block_pointer = new byte[Global_Variables.pointer_bytes];
-            System.arraycopy(blocks.getFirst(), 0, header_block_pointer, 0, Global_Variables.pointer_bytes);
+            // block에 쓸 record 정보 배열 미리 만들어놓기
+            int my_record_length = get_record_length(record, field_lengths);
+            byte[] new_record = new byte[my_record_length];
+            int offset = 0;
+            System.arraycopy(record.getBitmap(), 0, new_record, offset, Global_Variables.bitmap_bytes);
+            offset += Global_Variables.bitmap_bytes;
+            for(int i = 0 ; i < record.getFields().size() ; i++){
+                byte[] field = record.getFields().get(i);
+                System.arraycopy(field, 0, new_record, offset, field.length);
+                offset += field.length;
+            }
 
-            // 마지막 block 바로 다음 첫 번째 byte로 시작점 설정
-            int current_record_offset = ByteToInt(header_block_pointer);
-            int before_record_offset = 0;
-            int my_record_offset = Global_Variables.Block_Size * n_th_block;
+            // 헤더에 있는 레코드 포인터 가져오기
+            byte[] first_record = new byte[Global_Variables.pointer_bytes];
+            System.arraycopy(header, 0, first_record, 0, Global_Variables.pointer_bytes);
 
-            int cur_record_block_num = 0;        // 레코드가 들어간 블록 번호
-            int cur_record_block_offset = 0;     // 레코드가 블록 내에서 갖는 논리적 주소 (0 ~ block_size - 1)
-            int bef_record_block_num = 0;
-            int bef_record_block_offset = 0;
+            // 헤더에서 블록 개수 가져오기
+            byte[] block_number = new byte[Global_Variables.Block_number_bytes];
+            System.arraycopy(header, Global_Variables.pointer_bytes + Global_Variables.field_num_bytes, block_number, 0, Global_Variables.Block_number_bytes);
+            int block_num = ByteToInt(block_number);
+            byte[][] blocks = new byte[block_num + 1][];
+            Boolean[] check_block = new Boolean[block_num + 1];
+            for(int i = 0 ; i < block_num + 1 ; i++) check_block[i] = false;
+            for(int i = 0 ; i < block_num + 1 ; i++) blocks[i] = new byte[Global_Variables.Block_Size];
 
-            int my_record_num = 0;
-            // 각 record마다 자신이 들어갈 위치 찾기
-            while(my_record_num < records.size() && current_record_offset != 0){
-                Record record = records.get(my_record_num);
-                // file의 record를 순서대로, 마지막 record까지 탐색 (마지막 record의 pointer offset == 0)
-                cur_record_block_num = current_record_offset / Global_Variables.Block_Size;        // 레코드가 들어간 블록 번호
-                cur_record_block_offset = current_record_offset % Global_Variables.Block_Size;     // 레코드가 블록 내에서 갖는 논리적 주소 (0 ~ block_size - 1)
-                bef_record_block_num = before_record_offset / Global_Variables.Block_Size;
-                bef_record_block_offset = before_record_offset % Global_Variables.Block_Size;
+            int record_offset = ByteToInt(first_record);
+            int before_block_number = -1;
+            int before_block_offset = -1;
+            int before_block_pointer_offset = -1;
+            while (true) {
+                int Block_number = record_offset / Global_Variables.Block_Size;
+                int offset_in_block = record_offset % Global_Variables.Block_Size;
+                System.out.println("Block number: " + Block_number + " offset: " + offset_in_block);
+                System.out.println("record_offset: " + record_offset + ", before block number: " + before_block_number + ", before block offset: " + before_block_offset + ", before block pointer offset: " + before_block_pointer_offset);
 
-                byte[] my_record_search_key = record.getFields().getFirst();
-                byte[] current_record_search_key = find_search_key(blocks.get(cur_record_block_num), cur_record_block_offset, search_key_size);
-
-                // my record의 search key가 탐색하는 record의 search key보다 작은 경우
-                if (Arrays.compare(my_record_search_key, current_record_search_key) <= 0) {
-                    byte[] my_record_offset_byte = IntToByte(my_record_offset, Global_Variables.pointer_bytes);
-
-                    byte[] before_block = blocks.get(bef_record_block_num);
-                    byte[] before_record_bitmap = new byte[Global_Variables.bitmap_bytes];
-                    System.arraycopy(before_block, bef_record_block_offset, before_record_bitmap, 0, Global_Variables.bitmap_bytes);
-                    int before_record_length = get_record_length(before_record_bitmap, field_lengths);
-                    // search key가 마지막으로 작았던 file record의 pointer를 my record의 주소로 업데이트
-                    if (bef_record_block_num == 0 && bef_record_block_offset == 0) // 헤더인 경우
-                        System.arraycopy(my_record_offset_byte, 0, blocks.getFirst(), 0, Global_Variables.pointer_bytes);
-                    else // 아닌 경우
-                        System.arraycopy(my_record_offset_byte, 0, blocks.get(bef_record_block_num), bef_record_block_offset + before_record_length - Global_Variables.pointer_bytes, Global_Variables.pointer_bytes);
-
-                    // input record들 중에서 현재 file record보다 search key가 작은 모든 record를 찾아 pointers에 추가
-                    List<byte[]> less_records = take_less_records(records, my_record_num, current_record_offset, current_record_search_key, my_record_offset, field_lengths);
-                    pointers.addAll(less_records);
-
-                    // 업데이트할 record 번호는 채워진 pointer 배열의 원소 개수와 같음
-                    for (int k = 0; k < pointers.size() - my_record_num - 1; k++) {
-                        my_record_num++;
-                        if (my_record_num >= records.size()) break;
-                        my_record_offset += get_record_length(record, field_lengths);
-                    }
+                // 블록 없으면 disk에서 블러오기
+                if (!check_block[Block_number]) {
+                    check_block[Block_number] = true;
+                    byte[] block = read(path, Block_number * Global_Variables.Block_Size);
+                    blocks[Block_number] = block;
                 }
 
-                // before record offset, current record offset 업데이트
-                before_record_offset = current_record_offset;
+                byte[] my_search_key = record.getFields().getFirst();
+                byte[] file_search_key = find_search_key(blocks[Block_number], offset_in_block, my_search_key.length);
 
-                byte[] current_block = blocks.get(cur_record_block_num);
-                byte[] current_record_bitmap = new byte[Global_Variables.bitmap_bytes];
-                System.arraycopy(current_block, cur_record_block_offset, current_record_bitmap, 0, Global_Variables.bitmap_bytes);
-                int current_record_length = get_record_length(current_record_bitmap, field_lengths);
-                int current_record_pointer_offset = current_record_offset + current_record_length - Global_Variables.pointer_bytes;
+                int my_record_offset = find_my_offset(blocks, check_block, my_record_length, field_lengths);
+                int my_record_block_number = -1;
+                int my_record_block_offset = -1;
+                // 입력한 record의 search key가 더 작은 경우 -> file에 입력
+                if (Arrays.compare(my_search_key, file_search_key) <= 0) {
 
-                byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
-                System.arraycopy(current_block, current_record_pointer_offset % Global_Variables.Block_Size, next_record_offset, 0, Global_Variables.pointer_bytes);
-                current_record_offset = ByteToInt(next_record_offset);
+                    // 들어갈 자리가 없으면 새로운 블록 생성
+                    if (my_record_offset == -1) {
+                        System.out.println("Hello 1");
+                        // 변수들 업데이트
+                        update_header_with_new_block(header, path);
+                        check_block = Arrays.copyOf(check_block, check_block.length + 1);
+                        blocks = Arrays.copyOf(blocks, blocks.length + 1);
+                        block_num++;
+                        check_block[block_num] = true;
+                        blocks[block_num] = new byte[Global_Variables.Block_Size];
+                        
+                        // 새로운 블록 == blocks 배열의 마지막 block
+                        byte[] before_block_pointer = new byte[Global_Variables.pointer_bytes];
+                        System.arraycopy(blocks[before_block_number], before_block_pointer_offset, before_block_pointer, 0, Global_Variables.pointer_bytes);
+                        // 이전 레코드가 가리키던 레코드를 가리킴
+                        System.arraycopy(before_block_pointer, 0, new_record, offset, Global_Variables.pointer_bytes);
+
+                        // file의 이전 record가 자신을 가리키도록 저장 후 write
+                        System.arraycopy(IntToByte(Global_Variables.Block_Size * (block_num), Global_Variables.pointer_bytes), 0, blocks[before_block_number], before_block_pointer_offset, Global_Variables.pointer_bytes);
+
+                        // block에 복사
+                        System.arraycopy(new_record, 0, blocks[block_num], 0, my_record_length);
+
+                        my_record_block_number = block_num;
+                    }
+                    // 자리 있으면 거기에 record 넣고, 포인터 업데이트
+                    else {
+                        System.out.println("Hello 2");
+                        my_record_block_number = my_record_offset / Global_Variables.Block_Size;
+                        my_record_block_offset = my_record_offset % Global_Variables.Block_Size;
+                        byte[] before_block_pointer = new byte[Global_Variables.pointer_bytes];
+                        System.arraycopy(blocks[before_block_number], before_block_pointer_offset, before_block_pointer, 0, Global_Variables.pointer_bytes);
+                        // 이전레코드에 내 주소 쓰기
+                        System.arraycopy(IntToByte(my_record_offset, Global_Variables.pointer_bytes), 0, blocks[before_block_number], before_block_pointer_offset, Global_Variables.pointer_bytes);
+
+                        // 내 레코드에 이전 레코드가 가리키던 레코드 가리키기
+                        System.arraycopy(before_block_pointer, 0, new_record, offset, Global_Variables.pointer_bytes);
+                        
+                        // block에 복사
+                        System.arraycopy(new_record, 0, blocks[my_record_block_number], my_record_block_offset, my_record_length);
+                    }
+                    
+                    // before block, my block disk에 쓴 후 함수종료
+                    write(blocks[my_record_block_number], path, Global_Variables.Block_Size * my_record_block_number);
+                    if(my_record_block_number != before_block_number)
+                        write(blocks[before_block_number], path, Global_Variables.Block_Size * before_block_number);
+
+                    return;
+                }
+                // 더 큰 경우 file의 다음 record 탐색
+                else {
+                    byte[] current_record_bitmap = new byte[Global_Variables.bitmap_bytes];
+                    System.arraycopy(blocks[Block_number], offset_in_block, current_record_bitmap, 0, Global_Variables.bitmap_bytes);
+                    int current_record_length = get_record_length(current_record_bitmap, field_lengths);
+                    byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
+
+                    int current_record_pointer = offset_in_block + current_record_length - Global_Variables.pointer_bytes;
+                    System.arraycopy(blocks[Block_number], current_record_pointer, next_record_offset, 0, Global_Variables.pointer_bytes);
+
+                    before_block_number = Block_number;
+                    before_block_pointer_offset = current_record_pointer;
+                    before_block_offset = offset_in_block;
+                    record_offset = ByteToInt(next_record_offset);
+                }
+
+                // 다음 레코드가 없다면, 내 레코드의 search key가 가장 큰 레코드가 됨
+                // 레코드가 들어간 자리를 찾고, 이전의 레코드가 자신을 가리키게 한 후 write. 그리고 return
+                if(record_offset == 0){
+                    if(my_record_offset == -1){
+                        System.out.println("Hello 3");
+                        // 변수 업데이트
+                        update_header_with_new_block(header, path);
+                        check_block = Arrays.copyOf(check_block, check_block.length + 1);
+                        blocks = Arrays.copyOf(blocks, blocks.length + 1);
+                        block_num++;
+                        check_block[block_num] = true;
+                        blocks[block_num] = new byte[Global_Variables.Block_Size];
+
+                        // 이전레코드에 내 주소 쓰기
+                        System.arraycopy(IntToByte(my_record_offset, Global_Variables.pointer_bytes), 0, blocks[before_block_number], before_block_pointer_offset, Global_Variables.pointer_bytes);
+
+                        // block에 복사
+                        System.arraycopy(new_record, 0, blocks[block_num], 0, my_record_length);
+
+                        my_record_block_number = block_num;
+                        my_record_offset = block_num * Global_Variables.Block_Size;
+                    }
+                    else{
+                        System.out.println("Hello 4");
+                        my_record_block_number = my_record_offset / Global_Variables.Block_Size;
+                        my_record_block_offset = my_record_offset % Global_Variables.Block_Size;
+                        // 이전레코드에 내 주소 쓰기
+                        System.arraycopy(IntToByte(my_record_offset, Global_Variables.pointer_bytes), 0, blocks[before_block_number], before_block_pointer_offset, Global_Variables.pointer_bytes);
+                        // block에 복사
+                        System.arraycopy(new_record, 0, blocks[my_record_block_number], my_record_block_offset, my_record_length);
+                    }
+                    // before block, my block disk에 쓴 후 함수종료
+                    write(blocks[before_block_number], path, Global_Variables.Block_Size * before_block_number);
+                    write(blocks[my_record_block_number], path, my_record_block_number * Global_Variables.Block_Size);
+                    return;
+                }
             }
 
-            pointers = determine_pointers(records, pointers, Global_Variables.Block_Size * n_th_block, field_lengths);
-
-            // block들 파일에 쓰기
-            for(int i = 0 ; i < n_th_block ; i++){
-                write(blocks.get(i), path, Global_Variables.Block_Size * i);
-            }
-        }
-        catch (IOException e){
-            System.out.println("IOException 발생");
+        } catch (Exception e) {
+            System.out.println("IO Exception 발생");
             e.printStackTrace();
         }
+    }
 
-        return pointers;
+    public void insert_records(List<Record> records, String path, int[] field_lengths) {
+        for (int i = 0 ; i < records.size() ;i++) {
+            insert_record(records.get(i), path, field_lengths);
+        }
     }
 }
