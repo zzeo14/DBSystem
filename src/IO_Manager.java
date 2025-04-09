@@ -158,26 +158,31 @@ public class IO_Manager {
 
     // record가 file의 record보다 search key가 작은 경우, input record들이 연속적으로 file의 search key보다 작은 것을 대비하는 함수
     // 연속적으로 작다면, input record가 연속적으로 pointer를 갖게 되고, 마지막으로 작은 record가 file의 record를 가리키게 됨.
-    public List<byte[]> take_less_records(List<Record> records, int record_num, byte[] current_record_search_key, int offset, int[] field_lengths){
+    public List<byte[]> take_less_records(List<Record> records, int record_num, int current_record_offset, byte[] current_record_search_key, int offset, int[] field_lengths){
         List<byte[]> ret_value = new ArrayList<>();
 
-        // TODO: 현재 record가 아니라 next record 기준으로 삽입할 것0................................................
-        for(int i = record_num + 1; i < records.size(); i++){
+        for(int i = record_num; i < records.size() - 1 ; i++){
             Record record = records.get(i);
-            if(Arrays.compare(record.getFields().getFirst(), current_record_search_key) <= 0){
+            Record next_record = records.get(i + 1);
+            if(Arrays.compare(next_record.getFields().getFirst(), current_record_search_key) <= 0){
                 int record_length = get_record_length(record, field_lengths);
-                if((offset + record_length) / Global_Variables.Block_Size > (offset / Global_Variables.Block_Size)) {
+                int next_record_lengtth = get_record_length(next_record, field_lengths);
+                if((offset + record_length + record_length) / Global_Variables.Block_Size > (offset + record_length / Global_Variables.Block_Size)) {
                     int next_record_offset = ((offset / Global_Variables.Block_Size) + 1 ) * Global_Variables.Block_Size;
                     ret_value.add(IntToByte(next_record_offset, Global_Variables.pointer_bytes));
                     offset = next_record_offset;
                 }
                 else {
-                    ret_value.add(IntToByte(offset, Global_Variables.pointer_bytes)); // 자신의 주소를 넣음: 이전 record의 pointer가 됨
                     offset += record_length;
+                    ret_value.add(IntToByte(offset, Global_Variables.pointer_bytes)); // 자신의 주소를 넣음: 이전 record의 pointer가 됨
                 }
             }
             else break;
         }
+
+        // 마지막으로 current record주소 삽입
+        ret_value.add(IntToByte(current_record_offset, Global_Variables.pointer_bytes));
+
         return ret_value;
     }
 
@@ -251,7 +256,7 @@ public class IO_Manager {
                         else System.arraycopy(my_record_offset_byte, 0, blocks.get(bef_record_block_num), bef_record_block_offset + before_record_length - Global_Variables.pointer_bytes, Global_Variables.pointer_bytes);
 
                         // input record들 중에서 현재 file record보다 search key가 작은 모든 record를 찾아 pointers에 추가
-                        List<byte[]> less_records = take_less_records(records, my_record_num, current_record_search_key, my_record_offset, field_lengths);
+                        List<byte[]> less_records = take_less_records(records, my_record_num, current_record_offset, current_record_search_key, my_record_offset, field_lengths);
                         less_records.add(IntToByte(current_record_offset, Global_Variables.pointer_bytes));
                         pointers.addAll(less_records);
 
