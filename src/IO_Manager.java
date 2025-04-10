@@ -1,6 +1,8 @@
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class IO_Manager {
@@ -390,40 +392,67 @@ public class IO_Manager {
         }
     }
 
+    // 특정 field가 min보다 크고 max보다 작은 모든 record를 출력하는 함수
     public void find_records(String path, int field_order, String min, String max, int[] field_lengths){
-        File file = new File(path);
-        int block_num = (int)(file.length() / Global_Variables.Block_Size);
-        byte[][] blocks = new byte[block_num][];
-        for(int i = 0 ; i < block_num ; i++) {
-            blocks[i] = read(path, i * Global_Variables.Block_Size);
-        }
-        
-        // 헤더블록 포인터 탐색
-        byte[] first_pointer = new byte[Global_Variables.pointer_bytes];
-        System.arraycopy(blocks[0], 0, first_pointer, 0, Global_Variables.pointer_bytes);
-        int offset = ByteToInt(first_pointer);
-        Boolean end = false;
-
-        while(!end){
-            int block_number = offset / Global_Variables.Block_Size;
-            int block_offset = offset % Global_Variables.Block_Size;
-
-            byte[] bitmap = new byte[Global_Variables.bitmap_bytes];
-            System.arraycopy(blocks[block_number], block_offset, bitmap, 0, Global_Variables.bitmap_bytes);
-
-            int bitmap_byte = field_order / 8;
-            int bitmap_bit = field_order % 8;
-            int record_length = get_record_length(bitmap, field_lengths);
-            // record의 해당 부분이 null이면 다음 레코드로 건너뜀. 아니어야 column과 비교
-            if((bitmap[bitmap_byte] & (1 << (7 - bitmap_bit))) == 0){
-                int temp_offset = offset;
-                for(int i = 0 ; i < field_order ; i++){
-                    if((bitmap[i / 8] & (1 << (7 - i % 8))) == 0) temp_offset += field_lengths[i];
-                }
+        //try {
+            if(!is_file_exist(path)){
+                System.out.println("파일 존재하지 않음");
+                return;
             }
-            byte[] record_column = new byte[field_lengths[field_order - 1]];
+            File file = new File(path);
+            int block_num = (int) (file.length() / Global_Variables.Block_Size);
+            byte[][] blocks = new byte[block_num][];
+            for (int i = 0; i < block_num; i++) {
+                blocks[i] = read(path, i * Global_Variables.Block_Size);
+            }
 
-            offset += record_length - Global_Variables.pointer_bytes;
-        }
+            // 헤더블록 포인터 탐색
+            byte[] first_pointer = new byte[Global_Variables.pointer_bytes];
+            System.arraycopy(blocks[0], 0, first_pointer, 0, Global_Variables.pointer_bytes);
+            int offset = ByteToInt(first_pointer);
+            Boolean end = false;
+
+            int bitmap_byte = (field_order - 1) / 8;
+            int bitmap_bit = (field_order - 1) % 8;
+
+            while (!end) {
+                // record 위치 파악
+                int block_number = offset / Global_Variables.Block_Size;
+                int block_offset = offset % Global_Variables.Block_Size;
+
+                byte[] bitmap = new byte[Global_Variables.bitmap_bytes];
+                System.arraycopy(blocks[block_number], block_offset, bitmap, 0, Global_Variables.bitmap_bytes);
+
+                int record_length = get_record_length(bitmap, field_lengths);
+                // record의 해당 부분이 null이면 다음 레코드로 건너뜀. 아니어야 column과 비교
+                if ((bitmap[bitmap_byte] & (1 << (7 - bitmap_bit))) == 0) {
+                    int temp_offset = offset + Global_Variables.bitmap_bytes;
+                    for (int i = 0; i < field_order - 1; i++) {
+                        if ((bitmap[i / 8] & (1 << (7 - i % 8))) == 0) temp_offset += field_lengths[i];
+                    }
+                    byte[] record_column = new byte[field_lengths[field_order - 1]];
+                    System.arraycopy(blocks[block_number], temp_offset % Global_Variables.Block_Size, record_column, 0, field_lengths[field_order - 1]);
+                    if (Arrays.compare(record_column, min.getBytes(StandardCharsets.US_ASCII)) >= 0 && Arrays.compare(record_column, max.getBytes(StandardCharsets.US_ASCII)) <= 0) {
+                        byte[] record = new byte[record_length];
+                        System.arraycopy(blocks[block_number], offset % Global_Variables.Block_Size, record, 0, record_length);
+                        for(int i = Global_Variables.bitmap_bytes ; i < record_length - Global_Variables.pointer_bytes ; i++){
+                            System.out.print((char)record[i]);
+                        }
+                        System.out.println();
+                    }
+                }
+
+                offset += record_length - Global_Variables.pointer_bytes;
+                byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
+                System.arraycopy(blocks[block_number], offset % Global_Variables.Block_Size, next_record_offset, 0, Global_Variables.pointer_bytes);
+
+                // 다음 레코드가 없으면 끝, 있으면 그곳으로 이동
+                if(ByteToInt(next_record_offset) == 0) break;
+                else offset = ByteToInt(next_record_offset);
+            }
+        /*}
+        catch (Exception e) {
+            System.out.println("예상치 못한 에러 발생");
+        }*/
     }
 }
