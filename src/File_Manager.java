@@ -185,21 +185,11 @@ public class File_Manager {
     public void find_record(String file_name, String field_name, String min, String max) {
 
         Header_Content header = read_header(file_name);
-        int field_num = header.getFieldNum();
-        int block_num = header.getBlock_number();
         int[] field_lengths = header.getFieldLengths();
         List<String> field_names = header.getFieldNames();
         byte[] field_orders = header.getFieldOrders();
-
-        int search_key_offset = Global_Variables.pointer_bytes;
-
-        search_key_offset += Global_Variables.field_num_bytes + Global_Variables.Block_number_bytes;
-
-        byte[] column_name = new byte[Global_Variables.field_name_bytes];
         String column = "";
         int order = -1;
-
-        int record_number = 0;
 
         for (int f = 0; f < field_names.size(); f++) {
             // 매칭되면, field_name, field_order를 저장
@@ -213,7 +203,7 @@ public class File_Manager {
             return;
         }
         for(int i = 0 ; i < field_names.size() ; i++){
-            System.out.print(field_names.get(i) + "\t\t\t\t");
+            System.out.print(String.format("%-25s", field_names.get(i)));
         }
         System.out.println("\n--------------------------------------------------------");
         io.find_records(file_name + ".txt", order, min, max, field_lengths);
