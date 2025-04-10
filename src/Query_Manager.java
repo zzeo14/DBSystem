@@ -119,7 +119,6 @@ public class Query_Manager {
                 file_manager.insert_record(records, table_name);
             }
             else if(line.equalsIgnoreCase("find record")){ // record 찾기
-                // TODO: record 찾기 코드
                 sql_query = "select * ";
                 line = br.readLine();
                 if(line == null) { inv_q(); return; }
