@@ -389,4 +389,34 @@ public class IO_Manager {
             }
         }
     }
+
+    public void find_records(String path, int field_order, String min, String max, int[] field_lengths){
+        File file = new File(path);
+        int block_num = (int)(file.length() / Global_Variables.Block_Size);
+        byte[][] blocks = new byte[block_num][];
+        for(int i = 0 ; i < block_num ; i++) {
+            blocks[i] = read(path, i * Global_Variables.Block_Size);
+        }
+        
+        // 헤더블록 포인터 탐색
+        byte[] first_pointer = new byte[Global_Variables.pointer_bytes];
+        System.arraycopy(blocks[0], 0, first_pointer, 0, Global_Variables.pointer_bytes);
+        int offset = ByteToInt(first_pointer);
+        Boolean end = false;
+
+        while(!end){
+            int block_number = offset / Global_Variables.Block_Size;
+            int block_offset = offset % Global_Variables.Block_Size;
+
+            byte[] bitmap = new byte[Global_Variables.bitmap_bytes];
+            System.arraycopy(blocks[block_number], block_offset, bitmap, 0, Global_Variables.bitmap_bytes);
+
+            int bitmap_byte = field_order / 8;
+            int bitmap_bit = field_order % 8;
+            // record의 해당 부분이 null이면 다음 레코드로 건너뜀
+            if((bitmap[bitmap_byte] & (1 << (7 - bitmap_bit))) == 0){
+                
+            }
+        }
+    }
 }

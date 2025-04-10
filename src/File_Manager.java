@@ -196,9 +196,11 @@ public class File_Manager {
         byte[] column_name = new byte[Global_Variables.field_name_bytes];
         String c_n = "";
         String column = "";
-
+        int order = -1;
         String[] field_names = new String[f_n];
-        //int field_order = 0;
+        int[] field_lengths = new int[f_n];
+
+        int record_number = 0;
 
         for (int f = 0; f < f_n; f++) {
             c_n = "";
@@ -209,45 +211,47 @@ public class File_Manager {
                 else c_n += (char) column_name[i];
             }
 
-            if(c_n.equals(field_name)) column = c_n;
+
+            // 매칭되면, field_name, field_type, field_order를 저장
+            if(c_n.equals(field_name)) {
+                column = c_n;
+                byte[] field_length = new byte[Global_Variables.field_type_bytes];
+                System.arraycopy(header, search_key_offset + Global_Variables.field_name_bytes, field_length, 0, Global_Variables.field_type_bytes);
+                field_lengths[record_number] = io.ByteToInt(field_length);
+                String f_l = "";
+                for(int j = 0 ; j < field_length.length ; j++){
+                    if(field_length[j] == 0) break;
+                    else f_l += (char) field_length[j];
+                }
+                Pattern pattern = Pattern.compile("char\\((\\d+)\\)");
+                Matcher matcher = pattern.matcher(f_l);
+                int search_key_size = -1;
+                if(matcher.find() && Integer.parseInt(matcher.group(1)) == min.length() && Integer.parseInt(matcher.group(1)) == max.length()){ search_key_size = Integer.parseInt(matcher.group(1)); }
+                else {
+                    System.out.println("input Column(max, min) lengths are not exact with file column length.");
+                    return;
+                }
+
+                byte[] field_order = new byte[Global_Variables.field_order_bytes];
+                System.arraycopy(header, search_key_offset + Global_Variables.field_name_bytes + Global_Variables.field_type_bytes, field_order, 0, Global_Variables.field_order_bytes);
+                order = io.ByteToInt(field_order);
+            }
 
             field_names[f] = c_n;
             search_key_offset += column_name.length + Global_Variables.field_type_bytes + Global_Variables.field_order_bytes;
+            record_number++;
         }
-        System.out.println("column: " + column);
-        for(int i = 0 ; i < field_names.length ; i++){
-            System.out.print(field_names[i] + "\t\t");
-        }
-
         if(column.equals("")){
             System.out.println("There is no Column name " + field_name);
             return;
         }
-
-
-        // search key 길이 탐색
-        search_key_offset += Global_Variables.field_num_bytes;
-        byte[] search_key = new byte[Global_Variables.field_type_bytes];
-        System.arraycopy(header, search_key_offset, search_key, 0, Global_Variables.field_type_bytes);
-        String s_k = new String(search_key, StandardCharsets.US_ASCII);
-
-        Pattern pattern = Pattern.compile("char\\((\\d+)\\)");
-        Matcher matcher = pattern.matcher(s_k);
-        int search_key_size;
-        if(matcher.find()){ search_key_size = Integer.parseInt(matcher.group(1)); }
-        else {
-            System.out.println("Column lengths is not exact.");
-            return;
-        }
-        System.out.println("search_key_size: " + search_key_size);
-
         for(int i = 0 ; i < field_names.length ; i++){
-            System.out.print(field_names[i] + "\t\t");
+            System.out.print(field_names[i] + "\t\t\t\t");
         }
-        System.out.println("\n---------------------------------------------------------------------------------------------------------------");
-
-
+        System.out.println("\n--------------------------------------------------------");
+        io.find_records(file_name, order, min, max, field_lengths);
     }
+
 
     public void inv_q(){
         System.out.println("Invalid query");

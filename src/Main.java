@@ -39,8 +39,7 @@ public class Main {
                         qm.query(br);
                     }
                     catch (IOException e){
-                        e.
-                                printStackTrace();
+                        e.printStackTrace();
                     }
                     break;
                 case "2":
