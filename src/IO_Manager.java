@@ -462,4 +462,44 @@ public class IO_Manager {
             System.out.println("예상치 못한 에러 발생");
         }
     }
+
+    public void find_fields(int order, String path, int[] field_lengths, int offset){
+        File file = new File(path);
+        int block_size = (int) (file.length() / Global_Variables.Block_Size);
+
+        byte[][] blocks = new byte[block_size][];
+        for(int i = 1 ; i < block_size ; i++){ // 헤더는 필요없음
+            blocks[i] = read(path, i * Global_Variables.Block_Size);
+        }
+
+        while(offset != 0){
+            int block_number = offset / Global_Variables.Block_Size;
+            int block_offset = offset % Global_Variables.Block_Size;
+
+            byte[] bitmap = new byte[Global_Variables.bitmap_bytes];
+            System.arraycopy(blocks[block_number], block_offset, bitmap, 0, Global_Variables.bitmap_bytes);
+            if((bitmap[order / 8] & 1 << (7 - order % 8)) != 0){
+                System.out.println("null");
+            }
+            else {
+                int temp_offset = block_offset + Global_Variables.bitmap_bytes;
+                for (int i = 0; i < order; i++) {
+                    if ((bitmap[i / 8] & (1 << (7 - i % 8))) == 0) temp_offset += field_lengths[i];
+                }
+
+                byte[] field = new byte[field_lengths[order]];
+                System.arraycopy(blocks[block_number], temp_offset, field, 0, field_lengths[order]);
+
+                for (int i = 0; i < field.length; i++) {
+                    System.out.print((field[i] - '0'));
+                }
+                System.out.println();
+            }
+            offset += get_record_length(bitmap, field_lengths) - Global_Variables.pointer_bytes;
+            byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
+            System.arraycopy(blocks[block_number], offset % Global_Variables.Block_Size, next_record_offset, 0, Global_Variables.pointer_bytes);
+
+            offset = ByteToInt(next_record_offset);
+        }
+    }
 }

@@ -151,7 +151,21 @@ public class Query_Manager {
                 sql_manager.execute(sql_query, "find record");
             }
             else if(line.equalsIgnoreCase("find field")){ // field 찾기
-                // TODO : field 찾기 코드
+                sql_query = "select  ";
+
+                line = br.readLine();
+                if(line == null) { inv_q(); return; }
+                String field_name = line;
+                sql_query += line;
+
+                line = br.readLine();
+                String[] query = line.split("\\s+");
+                if(line == null || query.length != 2 || !query[0].equals("from")) { inv_q(); return; }
+                String file_name = query[1];
+                sql_query += line;
+
+                file_manager.find_field(file_name, field_name);
+                sql_manager.execute(sql_query, "find field");
             }
             else inv_q();
         }

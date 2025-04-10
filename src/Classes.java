@@ -91,16 +91,19 @@ class Header_Content {
     private List<String> field_names = new ArrayList<>();
     private int[] field_lengths;
     private byte[] field_orders;
+    private int first_record_offset;
 
     public void SetFieldNum(int field_num) { this.field_num = field_num; }
     public void SetField_names(List<String> field_names) { this.field_names = field_names; }
     public void SetField_lengths(int[] field_lengths) { this.field_lengths = field_lengths; }
     public void SetField_orders(byte[] field_orders) { this.field_orders = field_orders; }
     public void Setblock_number(int block_number) { this.block_number = block_number; }
+    public void SetFirst_record_offset(int first_record_offset) {this.first_record_offset = first_record_offset; }
 
     public int getFieldNum() { return field_num; }
     public List<String> getFieldNames() { return field_names; }
     public int[] getFieldLengths() { return field_lengths; }
     public byte[] getFieldOrders() { return field_orders; }
     public int getBlock_number() { return block_number; }
+    public int getFirst_record_offset() { return first_record_offset; }
 }

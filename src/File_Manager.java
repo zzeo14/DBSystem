@@ -115,7 +115,6 @@ public class File_Manager {
     }
 
     private Header_Content read_header(String file_name){
-
         byte[] header_block;
         header_block = io.read(file_name + ".txt", 0);
 
@@ -124,7 +123,12 @@ public class File_Manager {
             return null;
         }
 
-        int offset = Global_Variables.pointer_bytes;
+        int offset = 0;
+        byte[] first_record = new byte[Global_Variables.pointer_bytes];
+        System.arraycopy(header_block, offset, first_record, 0, Global_Variables.pointer_bytes);
+        int first_record_offset = io.ByteToInt(first_record);
+
+        offset += Global_Variables.pointer_bytes;
         byte[] field_number = new byte[Global_Variables.field_num_bytes];
         System.arraycopy(header_block, offset, field_number, 0, Global_Variables.field_num_bytes);
         int field_num = io.ByteToInt(field_number); // field 개수
@@ -174,6 +178,7 @@ public class File_Manager {
 
         // return값 저장
         Header_Content header_content = new Header_Content();
+        header_content.SetFirst_record_offset(first_record_offset);
         header_content.Setblock_number(block_num);
         header_content.SetFieldNum(field_num);
         header_content.SetField_names(field_names);
@@ -217,5 +222,27 @@ public class File_Manager {
     // error handling
     public void inv_q(int i) {
         System.out.println("Invalid query at line " + (4 + i));
+    }
+
+    void find_field(String file_name, String field_name){
+        Header_Content header = read_header(file_name);
+        int[] field_lengths = header.getFieldLengths();
+        List<String> field_names = header.getFieldNames();
+        int first_record_offset = header.getFirst_record_offset();
+        int order = -1;
+
+        for(int i = 0 ; i < field_names.size() ; i++){
+            String field = field_names.get(i);
+            if(field_name.equals(field)) {
+                order = i;
+            }
+        }
+
+        if(order == -1){
+            System.out.println("There is no Column name " + field_name);
+            return;
+        }
+
+        io.find_fields(order, file_name + ".txt", field_lengths, first_record_offset);
     }
 }
