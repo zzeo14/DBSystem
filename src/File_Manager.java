@@ -243,6 +243,9 @@ public class File_Manager {
             return;
         }
 
+        System.out.println(field_name);
+        System.out.println("--------------------------------------------------------");
+
         io.find_fields(order, file_name + ".txt", field_lengths, first_record_offset);
     }
 }
