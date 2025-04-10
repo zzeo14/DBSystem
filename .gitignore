@@ -26,3 +26,5 @@ replay_pid*
 SQL_password.java
 *.txt
 .DS_Store
+.idea/*
+DBSystem.iml
