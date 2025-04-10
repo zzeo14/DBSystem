@@ -413,10 +413,17 @@ public class IO_Manager {
 
             int bitmap_byte = field_order / 8;
             int bitmap_bit = field_order % 8;
-            // record의 해당 부분이 null이면 다음 레코드로 건너뜀
+            int record_length = get_record_length(bitmap, field_lengths);
+            // record의 해당 부분이 null이면 다음 레코드로 건너뜀. 아니어야 column과 비교
             if((bitmap[bitmap_byte] & (1 << (7 - bitmap_bit))) == 0){
-                
+                int temp_offset = offset;
+                for(int i = 0 ; i < field_order ; i++){
+                    if((bitmap[i / 8] & (1 << (7 - i % 8))) == 0) temp_offset += field_lengths[i];
+                }
             }
+            byte[] record_column = new byte[field_lengths[field_order - 1]];
+
+            offset += record_length - Global_Variables.pointer_bytes;
         }
     }
 }
