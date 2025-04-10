@@ -213,13 +213,14 @@ public class IO_Manager {
             while (true) {
                 int Block_number = record_offset / Global_Variables.Block_Size;
                 int offset_in_block = record_offset % Global_Variables.Block_Size;
-                //System.out.println("Block number: " + Block_number + " offset: " + offset_in_block);
-                //System.out.println("record_offset: " + record_offset + ", before block number: " + before_block_number + ", before block offset: " + before_block_offset + ", before block pointer offset: " + before_block_pointer_offset);
+                System.out.println("Block number: " + Block_number + " offset: " + offset_in_block);
+                System.out.println("record_offset: " + record_offset + ", before block number: " + before_block_number + ", before block offset: " + before_block_offset + ", before block pointer offset: " + before_block_pointer_offset);
 
                 byte[] my_search_key = record.getFields().getFirst();
                 byte[] file_search_key = find_search_key(blocks[Block_number], offset_in_block, my_search_key.length);
 
                 int my_record_offset = find_my_offset(blocks, my_record_length, field_lengths);
+                System.out.println("my_record_offset: " + my_record_offset);
                 int my_record_block_number = -1;
                 int my_record_block_offset = -1;
                 // 입력한 record의 search key가 더 작은 경우 -> file에 입력
@@ -373,11 +374,19 @@ public class IO_Manager {
     public void insert_records(List<Record> records, String path, int[] field_lengths) {
         File file = new File(path);
         int block_num = (int)(file.length() / Global_Variables.Block_Size);
-        byte[][] blocks = new byte[block_num + 1][];
-        for(int i = 0 ; i < block_num + 1 ; i++) blocks[i] = read(path, i * Global_Variables.Block_Size);
+        byte[][] blocks = new byte[block_num][];
+        for(int i = 0 ; i < block_num ; i++) {
+            blocks[i] = read(path, i * Global_Variables.Block_Size);
+        }
         for (int i = 0 ; i < records.size() ;i++) {
-            System.out.println("record " + i);
+            System.out.println("record " + i + ", block_size: " + blocks.length);
             insert_record(records.get(i), path, field_lengths, blocks);
+            if((int)(file.length() / Global_Variables.Block_Size) != block_num){
+                System.out.println("히히");
+                block_num++;
+                blocks = Arrays.copyOf(blocks, block_num);
+                blocks[block_num - 1] = read(path, (block_num - 1) * Global_Variables.Block_Size);
+            }
         }
     }
 }
