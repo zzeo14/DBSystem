@@ -2,10 +2,10 @@ insert into
 tree
 10
 00001;010;null,
-00002;100;null,
+00002;null;null,
 00004;null;null,
 00008;001;null,
-00003;001;null,
+00003;null;01,
 00005;null;02,
 00006;101;20,
 00009;null;02,

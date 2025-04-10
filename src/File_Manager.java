@@ -182,6 +182,77 @@ public class File_Manager {
         return header_content;
     }
 
+    public void find_record(String file_name, String field_name, String min, String max) {
+        byte[] header = io.read(file_name + ".txt", 0);
+
+        int search_key_offset = Global_Variables.pointer_bytes;
+
+        byte[] field_num = new byte[Global_Variables.field_num_bytes];
+        System.arraycopy(header, search_key_offset, field_num, 0, Global_Variables.field_num_bytes);
+        int f_n = io.ByteToInt(field_num);
+
+        search_key_offset += Global_Variables.field_num_bytes + Global_Variables.Block_number_bytes;
+
+        byte[] column_name = new byte[Global_Variables.field_name_bytes];
+        String c_n = "";
+        String column = "";
+
+        String[] field_names = new String[f_n];
+        //int field_order = 0;
+
+        for (int f = 0; f < f_n; f++) {
+            c_n = "";
+            // field name 복사
+            System.arraycopy(header, search_key_offset, column_name, 0, Global_Variables.field_name_bytes);
+            for (int i = 0; i < Global_Variables.field_name_bytes; i++) {
+                if (column_name[i] == 0) break;
+                else c_n += (char) column_name[i];
+            }
+
+            if(c_n.equals(field_name)) column = c_n;
+
+            field_names[f] = c_n;
+            search_key_offset += column_name.length + Global_Variables.field_type_bytes + Global_Variables.field_order_bytes;
+        }
+        System.out.println("column: " + column);
+        for(int i = 0 ; i < field_names.length ; i++){
+            System.out.print(field_names[i] + "\t\t");
+        }
+
+        if(column.equals("")){
+            System.out.println("There is no Column name " + field_name);
+            return;
+        }
+
+
+        // search key 길이 탐색
+        search_key_offset += Global_Variables.field_num_bytes;
+        byte[] search_key = new byte[Global_Variables.field_type_bytes];
+        System.arraycopy(header, search_key_offset, search_key, 0, Global_Variables.field_type_bytes);
+        String s_k = new String(search_key, StandardCharsets.US_ASCII);
+
+        Pattern pattern = Pattern.compile("char\\((\\d+)\\)");
+        Matcher matcher = pattern.matcher(s_k);
+        int search_key_size;
+        if(matcher.find()){ search_key_size = Integer.parseInt(matcher.group(1)); }
+        else {
+            System.out.println("Column lengths is not exact.");
+            return;
+        }
+        System.out.println("search_key_size: " + search_key_size);
+
+        for(int i = 0 ; i < field_names.length ; i++){
+            System.out.print(field_names[i] + "\t\t");
+        }
+        System.out.println("\n---------------------------------------------------------------------------------------------------------------");
+
+
+    }
+
+    public void inv_q(){
+        System.out.println("Invalid query");
+    }
+
     // error handling
     public void inv_q(int i) {
         System.out.println("Invalid query at line " + (4 + i));

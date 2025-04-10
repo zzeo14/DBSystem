@@ -167,7 +167,8 @@ public class IO_Manager {
         write(header, path, 0);
     }
 
-    public void insert_record(Record record, String path, int[] field_lengths) {
+    // 레코드 삽입 함수
+    public void insert_record(Record record, String path, int[] field_lengths, byte[][] blocks) {
         try {
             RandomAccessFile file = new RandomAccessFile(path, "rw");
             byte[] header;
@@ -204,8 +205,6 @@ public class IO_Manager {
             byte[] block_number = new byte[Global_Variables.Block_number_bytes];
             System.arraycopy(header, Global_Variables.pointer_bytes + Global_Variables.field_num_bytes, block_number, 0, Global_Variables.Block_number_bytes);
             int block_num = ByteToInt(block_number);
-            byte[][] blocks = new byte[block_num + 1][];
-            for(int i = 0 ; i < block_num + 1 ; i++) blocks[i] = read(path, i * Global_Variables.Block_Size);
 
             int record_offset = ByteToInt(first_record);
             int before_block_number = -1;
@@ -372,9 +371,13 @@ public class IO_Manager {
     }
 
     public void insert_records(List<Record> records, String path, int[] field_lengths) {
+        File file = new File(path);
+        int block_num = (int)(file.length() / Global_Variables.Block_Size);
+        byte[][] blocks = new byte[block_num + 1][];
+        for(int i = 0 ; i < block_num + 1 ; i++) blocks[i] = read(path, i * Global_Variables.Block_Size);
         for (int i = 0 ; i < records.size() ;i++) {
             System.out.println("record " + i);
-            insert_record(records.get(i), path, field_lengths);
+            insert_record(records.get(i), path, field_lengths, blocks);
         }
     }
 }
