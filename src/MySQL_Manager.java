@@ -2,7 +2,7 @@ import java.sql.*;
 
 public class MySQL_Manager {
     public void execute(String query, String type){
-        System.out.println(query);
+        //System.out.println(query);
 
         // 기본값 설정 //
         String url = "jdbc:mysql://localhost:3306/DBSystem";
@@ -43,6 +43,8 @@ public class MySQL_Manager {
                 }
                 case "join": {
                     ResultSet rs = stmt.executeQuery(query);
+
+                    // metadata 받아오기
                     ResultSetMetaData rsmd = rs.getMetaData();
                     int columnCount = rsmd.getColumnCount();
                     System.out.println("--------------------MySQL Result--------------------");
