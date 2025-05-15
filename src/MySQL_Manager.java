@@ -1,11 +1,8 @@
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 public class MySQL_Manager {
     public void execute(String query, String type){
-        //System.out.println(query);
+        System.out.println(query);
 
         // 기본값 설정 //
         String url = "jdbc:mysql://localhost:3306/DBSystem";
@@ -45,7 +42,27 @@ public class MySQL_Manager {
                     break;
                 }
                 case "join": {
-                    stmt.executeQuery(query);
+                    ResultSet rs = stmt.executeQuery(query);
+                    ResultSetMetaData rsmd = rs.getMetaData();
+                    int columnCount = rsmd.getColumnCount();
+                    System.out.println("--------------------MySQL Result--------------------");
+
+                    // column name 출력
+                    for (int i = 1; i <= columnCount; i++) {
+                        String columnName = rsmd.getColumnName(i);
+                        System.out.printf("%-25s", columnName);
+                    }
+                    System.out.println();
+
+                    // tuple 출력
+                    while (rs.next()) {
+                        for (int i = 1; i <= columnCount; i++) {
+                            String value = rs.getString(i);
+                            if (value == null) value = "NULL"; // NULL 처리
+                            System.out.printf("%-25s", value);
+                        }
+                        System.out.println();
+                    }
                     break;
                 }
                 default:{
