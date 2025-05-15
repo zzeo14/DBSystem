@@ -179,7 +179,7 @@ public class Query_Manager {
                 if(line == null) {inv_q(); return;}
                 if(line.split(" ").length != 1) {inv_q(); return;}
                 String second_file = line;
-                sql_query += ", " + second_file + " where"; // second relation
+                sql_query += ", " + second_file + " where "; // second relation
 
                 // 각 table의 header 가져오기
                 Header_Content first_file_header = file_manager.read_header(first_file);
