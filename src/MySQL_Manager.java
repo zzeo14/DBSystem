@@ -44,10 +44,8 @@ public class MySQL_Manager {
                     stmt.executeUpdate(query);
                     break;
                 }
-                case "find field": {
-                    break;
-                }
-                case "find record": {
+                case "join": {
+                    stmt.executeQuery(query);
                     break;
                 }
                 default:{
@@ -55,9 +53,11 @@ public class MySQL_Manager {
                 }
             }
         }
+        catch (NullPointerException e){
+            System.out.println("Null pointer exception 에러 발생");
+        }
         catch (SQLException e){
             System.out.println("sql query 에러");
-            e.printStackTrace();
         }
     }
 }

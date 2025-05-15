@@ -114,7 +114,7 @@ public class File_Manager {
         io.insert_records(records, file_name + ".txt", field_lengths);
     }
 
-    private Header_Content read_header(String file_name){
+    public Header_Content read_header(String file_name){
         byte[] header_block;
         header_block = io.read(file_name + ".txt", 0);
 
@@ -187,6 +187,31 @@ public class File_Manager {
         return header_content;
     }
 
+    void find_field(String file_name, String field_name){
+        Header_Content header = read_header(file_name);
+        int[] field_lengths = header.getFieldLengths();
+        List<String> field_names = header.getFieldNames();
+        int first_record_offset = header.getFirst_record_offset();
+        int order = -1;
+
+        for(int i = 0 ; i < field_names.size() ; i++){
+            String field = field_names.get(i);
+            if(field_name.equals(field)) {
+                order = i;
+            }
+        }
+
+        if(order == -1){
+            System.out.println("There is no Column name " + field_name);
+            return;
+        }
+
+        System.out.println(field_name);
+        System.out.println("--------------------------------------------------------");
+
+        io.find_fields(order, file_name + ".txt", field_lengths, first_record_offset);
+    }
+
     public void find_record(String file_name, String field_name, String min, String max) {
 
         Header_Content header = read_header(file_name);
@@ -214,6 +239,10 @@ public class File_Manager {
         io.find_records(file_name + ".txt", order, min, max, field_lengths);
     }
 
+    // 두 file을 받고 search key의 join 연산 결과를 출력하는 함수
+    public void join_execute(String first_file, Header_Content first_file_header, String second_file, Header_Content second_file_header){
+
+    }
 
     public void inv_q(){
         System.out.println("Invalid query");
@@ -222,30 +251,5 @@ public class File_Manager {
     // error handling
     public void inv_q(int i) {
         System.out.println("Invalid query at line " + (4 + i));
-    }
-
-    void find_field(String file_name, String field_name){
-        Header_Content header = read_header(file_name);
-        int[] field_lengths = header.getFieldLengths();
-        List<String> field_names = header.getFieldNames();
-        int first_record_offset = header.getFirst_record_offset();
-        int order = -1;
-
-        for(int i = 0 ; i < field_names.size() ; i++){
-            String field = field_names.get(i);
-            if(field_name.equals(field)) {
-                order = i;
-            }
-        }
-
-        if(order == -1){
-            System.out.println("There is no Column name " + field_name);
-            return;
-        }
-
-        System.out.println(field_name);
-        System.out.println("--------------------------------------------------------");
-
-        io.find_fields(order, file_name + ".txt", field_lengths, first_record_offset);
     }
 }

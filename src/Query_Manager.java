@@ -167,7 +167,38 @@ public class Query_Manager {
                 file_manager.find_field(file_name, field_name);
                 sql_manager.execute(sql_query, "find field");
             }
-            else inv_q();
+            else if (line.equalsIgnoreCase("join")) { // join 연산 수행
+                sql_query = "select * from ";
+                line = br.readLine();
+                if(line == null) {inv_q(); return;}
+                if(line.split(" ").length != 1) {inv_q(); return;}
+                String first_file = line;
+                sql_query += first_file; // first relation
+
+                line = br.readLine();
+                if(line == null) {inv_q(); return;}
+                if(line.split(" ").length != 1) {inv_q(); return;}
+                String second_file = line;
+                sql_query += ", " + second_file + " where"; // second relation
+
+                // 각 table의 header 가져오기
+                Header_Content first_file_header = file_manager.read_header(first_file);
+                Header_Content second_file_header = file_manager.read_header(second_file);
+
+                // search key 가져오기
+                String first_file_search_key = first_file_header.getFieldNames().getFirst();
+                String second_file_search_key = second_file_header.getFieldNames().getFirst();
+
+                // join 연산 수행
+                file_manager.join_execute(first_file, first_file_header, second_file, second_file_header);
+
+                // mysql 실행
+                sql_query += first_file + "." + first_file_search_key + " = " + second_file + "." + second_file_search_key; // r.a = s.a
+                sql_manager.execute(sql_query, "join");
+            }
+            else {
+                inv_q();
+            }
         }
         else inv_q();
     }
