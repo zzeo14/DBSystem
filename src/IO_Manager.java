@@ -383,7 +383,7 @@ public class IO_Manager {
     }
 
     // 특정 field가 min보다 크고 max보다 작은 모든 record를 출력하는 함수
-    public void find_records(String path, int field_order, String min, String max, int[] field_lengths){
+    public void find_records(String path, int field_order, int[] field_lengths){
         try {
             if(!is_file_exist(path)){
                 System.out.println("파일 존재하지 않음");
@@ -422,21 +422,19 @@ public class IO_Manager {
                     }
                     byte[] record_column = new byte[field_lengths[field_order - 1]];
                     System.arraycopy(blocks[block_number], temp_offset % Global_Variables.Block_Size, record_column, 0, field_lengths[field_order - 1]);
-                    if (Arrays.compare(record_column, min.getBytes(StandardCharsets.US_ASCII)) >= 0 && Arrays.compare(record_column, max.getBytes(StandardCharsets.US_ASCII)) <= 0) {
-                        byte[] record = new byte[record_length];
-                        System.arraycopy(blocks[block_number], offset % Global_Variables.Block_Size, record, 0, record_length);
+                    byte[] record = new byte[record_length];
+                    System.arraycopy(blocks[block_number], offset % Global_Variables.Block_Size, record, 0, record_length);
 
-                        int l = 0, k = 0;
-                        String s = "";
-                        for(int i = Global_Variables.bitmap_bytes ; i < record_length - Global_Variables.pointer_bytes ; i++){
-                            s += (char)record[i];
-                            if(k == field_lengths[l] - 1) { System.out.print(String.format("%-25s", s)); l++; k = 0; s = ""; }
-                            else{ k++; }
-                            if((bitmap[l / 8] & (1 << (7 - l % 8))) != 0) {System.out.print(String.format("%-25s", "null")); l++; k = 0; s = "";}
-                        }
-                        if(l < field_lengths.length) for(int i = 0 ; i < field_lengths.length - l ; i++) System.out.print(String.format("%-25s", null));
-                        System.out.println();
+                    int l = 0, k = 0;
+                    String s = "";
+                    for(int i = Global_Variables.bitmap_bytes ; i < record_length - Global_Variables.pointer_bytes ; i++){
+                        s += (char)record[i];
+                        if(k == field_lengths[l] - 1) { System.out.print(String.format("%-25s", s)); l++; k = 0; s = ""; }
+                        else{ k++; }
+                        if((bitmap[l / 8] & (1 << (7 - l % 8))) != 0) {System.out.print(String.format("%-25s", "null")); l++; k = 0; s = "";}
                     }
+                    if(l < field_lengths.length) for(int i = 0 ; i < field_lengths.length - l ; i++) System.out.print(String.format("%-25s", null));
+                    System.out.println();
                 }
 
                 offset += record_length - Global_Variables.pointer_bytes;
