@@ -115,13 +115,13 @@ public class File_Manager {
     }
 
     public Header_Content read_header(String file_name){
-        byte[] header_block;
-        header_block = io.read(file_name + ".txt", 0);
-
         if(!io.is_file_exist(file_name + ".txt")){
             System.out.println(file_name + " 파일이 존재하지 않음");
             return null;
         }
+
+        byte[] header_block;
+        header_block = io.read(file_name + ".txt", 0);
 
         int offset = 0;
         byte[] first_record = new byte[Global_Variables.pointer_bytes];
@@ -236,12 +236,17 @@ public class File_Manager {
             System.out.print(String.format("%-25s", field_names.get(i)));
         }
         System.out.println("\n--------------------------------------------------------");
-        io.find_records(file_name + ".txt", order, min, max, field_lengths);
+        io.find_records(file_name + ".txt", order, field_lengths);
     }
 
     // 두 file을 받고 search key의 join 연산 결과를 출력하는 함수
     public void join_execute(String first_file, Header_Content first_file_header, String second_file, Header_Content second_file_header){
-
+        /*int first_block_num = first_file_header.getBlock_number();
+        byte[][] first_blocks = new byte[first_block_num][];
+        for (int i = 0; i < first_block_num; i++) {
+            first_blocks[i] = read(path, i * Global_Variables.Block_Size);
+        }
+        first_file_header.get*/
     }
 
     public void inv_q(){

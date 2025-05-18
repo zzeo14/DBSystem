@@ -148,7 +148,7 @@ public class Query_Manager {
                 file_manager.find_record(table_name, field_name, min, max);
 
                 sql_query += field_name + " >= " + min + " && " + field_name + " <= " + max;
-                sql_manager.execute(sql_query, "find record");
+                //sql_manager.execute(sql_query, "find record");
             }
             else if(line.equalsIgnoreCase("find field")){ // field 찾기
                 sql_query = "select  ";
@@ -165,7 +165,7 @@ public class Query_Manager {
                 sql_query += line;
 
                 file_manager.find_field(file_name, field_name);
-                sql_manager.execute(sql_query, "find field");
+                //sql_manager.execute(sql_query, "find field");
             }
             else if (line.equalsIgnoreCase("join")) { // join 연산 수행
                 sql_query = "select * from ";
@@ -184,6 +184,7 @@ public class Query_Manager {
                 // 각 table의 header 가져오기
                 Header_Content first_file_header = file_manager.read_header(first_file);
                 Header_Content second_file_header = file_manager.read_header(second_file);
+                if(first_file_header == null || second_file_header == null) {return;}
 
                 // search key 가져오기
                 String first_file_search_key = first_file_header.getFieldNames().getFirst();
@@ -194,6 +195,7 @@ public class Query_Manager {
 
                 // mysql 실행
                 sql_query += first_file + "." + first_file_search_key + " = " + second_file + "." + second_file_search_key; // r.a = s.a
+                sql_query += " order by " + first_file + "." + first_file_search_key; // order by r.a
                 sql_manager.execute(sql_query, "join");
             }
             else {
