@@ -1,6 +1,7 @@
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.io.IOException;
@@ -212,41 +213,92 @@ public class File_Manager {
         io.find_fields(order, file_name + ".txt", field_lengths, first_record_offset);
     }
 
-    public void find_record(String file_name, String field_name, String min, String max) {
+    public List<Record> find_record(String file_name) {
 
         Header_Content header = read_header(file_name);
         int[] field_lengths = header.getFieldLengths();
-        List<String> field_names = header.getFieldNames();
-        byte[] field_orders = header.getFieldOrders();
-        String column = "";
-        int order = -1;
 
-        for (int f = 0; f < field_names.size(); f++) {
-            // 매칭되면, field_name, field_order를 저장
-            if(field_names.get(f).equals(field_name)) {
-                column = field_names.get(f);
-                order = field_orders[f];
-            }
-        }
-        if(column.equals("")){
-            System.out.println("There is no Column name " + field_name);
-            return;
-        }
-        for(int i = 0 ; i < field_names.size() ; i++){
-            System.out.print(String.format("%-25s", field_names.get(i)));
-        }
-        System.out.println("\n--------------------------------------------------------");
-        io.find_records(file_name + ".txt", order, field_lengths);
+        return io.find_records(file_name + ".txt", field_lengths);
     }
 
     // 두 file을 받고 search key의 join 연산 결과를 출력하는 함수
     public void join_execute(String first_file, Header_Content first_file_header, String second_file, Header_Content second_file_header){
-        /*int first_block_num = first_file_header.getBlock_number();
-        byte[][] first_blocks = new byte[first_block_num][];
-        for (int i = 0; i < first_block_num; i++) {
-            first_blocks[i] = read(path, i * Global_Variables.Block_Size);
+        // 두 file의 search key 길이가 다르면 join 결과가 없다고 처리
+        if(first_file_header.getFieldLengths()[0] != second_file_header.getFieldLengths()[0]){
+            System.out.println("join 결과 없음");
+            return;
         }
-        first_file_header.get*/
+
+        System.out.println("--------------------DBSystem Result--------------------");
+        for(int i = 0 ; i < first_file_header.getFieldNames().size(); i++){
+            System.out.print(String.format("%-25s", first_file_header.getFieldNames().get(i)));
+        }
+        for(int i = 0 ; i < second_file_header.getFieldNames().size(); i++){
+            System.out.print(String.format("%-25s", second_file_header.getFieldNames().get(i)));
+        }
+        System.out.println();
+
+        int[] first_field_lengths = first_file_header.getFieldLengths();
+        List<Record> first_file_records = io.find_records(first_file + ".txt", first_field_lengths);
+
+        int[] second_field_lengths = second_file_header.getFieldLengths();
+        List<Record> second_file_records = io.find_records(second_file + ".txt", second_field_lengths);
+
+        int pointer1 = 0, pointer2 = 0;
+        // first file과 second file에 같은 search key 값의 record들을 저장하는 list
+        List<Record> temp_first = new ArrayList<>(), temp_second = new ArrayList<>();
+        while(pointer1 < first_file_records.size() && pointer2 < second_file_records.size()){
+            Record first_record = first_file_records.get(pointer1), second_record = second_file_records.get(pointer2);
+
+            // 각 search key 가져오기
+            byte[] first_field = first_record.getFields().getFirst();
+            byte[] second_field = second_record.getFields().getFirst();
+
+            int compare = Arrays.compare(first_field, second_field);
+            // 두 search key가 다르다면 작은 search key쪽의 pointer를 1만큼 증가
+            if(compare < 0) {pointer1++; temp_first.clear();}
+            else if(compare > 0) {pointer2++; temp_second.clear();}
+            else{
+                temp_first.add(first_record); pointer1++;
+                temp_second.add(second_record); pointer2++;
+
+                // 같은 search key값인 record들을 모두 array에 보관
+                while(pointer1 < first_file_records.size() && Arrays.compare(first_file_records.get(pointer1).getFields().getFirst(), first_field) == 0){
+                    temp_first.add(first_file_records.get(pointer1));
+                    pointer1++;
+                }
+
+                while(pointer2 < second_file_records.size() && Arrays.compare(second_file_records.get(pointer2).getFields().getFirst(), second_field) == 0){
+                    temp_second.add(second_file_records.get(pointer2));
+                    pointer2++;
+                }
+
+                // 두 array에 있는 모든 pair 결과를 출력
+                for(int i = 0 ; i < temp_first.size() ; i++){
+                    for(int j = 0 ; j < temp_second.size() ; j++){
+                        List<byte[]> f1 = temp_first.get(i).getFields();
+                        List<byte[]> f2 = temp_second.get(j).getFields();
+                        printField(f1);
+                        printField(f2);
+                        System.out.println();
+                    }
+                }
+
+                temp_first.clear();
+                temp_second.clear();
+            }
+        }
+    }
+
+    public void printField(List<byte[]> fields){
+        for(int i = 0 ; i < fields.size() ; i++){
+            String s = "";
+            for(int j = 0 ; j < fields.get(i).length; j++){
+                s += (char)fields.get(i)[j];
+            }
+
+            System.out.print(String.format("%-25s", s));
+        }
     }
 
     public void inv_q(){

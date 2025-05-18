@@ -118,55 +118,6 @@ public class Query_Manager {
                 }
                 file_manager.insert_record(records, table_name);
             }
-            else if(line.equalsIgnoreCase("find record")){ // record 찾기
-                sql_query = "select * ";
-                line = br.readLine();
-                if(line == null) { inv_q(); return; }
-                String[] query = line.split("\\s+");
-                if(query.length != 2 || !query[0].equals("from")) {inv_q(); return;}
-                String table_name = query[1];
-                sql_query += "from " + table_name + " where ";
-
-                line = br.readLine();
-                if(line == null) { inv_q(); return; }
-                query = line.split("\\s+");
-                if(query.length != 2 || !query[0].equals("field")) {inv_q(); return;}
-                String field_name = query[1];
-
-                line = br.readLine();
-                if(line == null) { inv_q(); return; }
-                query = line.split("\\s+");
-                if(query.length != 2 || !query[0].equals("min")) {inv_q(); return;}
-                String min = query[1];
-
-                line = br.readLine();
-                if(line == null) { inv_q(); return; }
-                query = line.split("\\s+");
-                if(query.length != 2 || !query[0].equals("max")) {inv_q(); return;}
-                String max = query[1];
-
-                file_manager.find_record(table_name, field_name, min, max);
-
-                sql_query += field_name + " >= " + min + " && " + field_name + " <= " + max;
-                //sql_manager.execute(sql_query, "find record");
-            }
-            else if(line.equalsIgnoreCase("find field")){ // field 찾기
-                sql_query = "select  ";
-
-                line = br.readLine();
-                if(line == null) { inv_q(); return; }
-                String field_name = line;
-                sql_query += line;
-
-                line = br.readLine();
-                String[] query = line.split("\\s+");
-                if(line == null || query.length != 2 || !query[0].equals("from")) { inv_q(); return; }
-                String file_name = query[1];
-                sql_query += line;
-
-                file_manager.find_field(file_name, field_name);
-                //sql_manager.execute(sql_query, "find field");
-            }
             else if (line.equalsIgnoreCase("join")) { // join 연산 수행
                 sql_query = "select * from ";
                 line = br.readLine();

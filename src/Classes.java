@@ -63,7 +63,7 @@ class Metadata {
 
 class Record implements Comparable<Record>{
     private byte[] bitmap = new byte[Global_Variables.bitmap_bytes];
-    private List<byte[]> fields;
+    private List<byte[]> fields = new ArrayList<>();
     private int next_pointer;
 
     public byte[] getBitmap() { return bitmap; }

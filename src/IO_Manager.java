@@ -382,13 +382,15 @@ public class IO_Manager {
         }
     }
 
-    // 특정 field가 min보다 크고 max보다 작은 모든 record를 출력하는 함수
-    public void find_records(String path, int field_order, int[] field_lengths){
+    // record를 return하는 함수
+    public List<Record> find_records(String path, int[] field_lengths){
+        List<Record> records = new ArrayList<>();
         try {
             if(!is_file_exist(path)){
                 System.out.println("파일 존재하지 않음");
-                return;
+                return null;
             }
+
             File file = new File(path);
             int block_num = (int) (file.length() / Global_Variables.Block_Size);
             byte[][] blocks = new byte[block_num][];
@@ -401,11 +403,8 @@ public class IO_Manager {
             System.arraycopy(blocks[0], 0, first_pointer, 0, Global_Variables.pointer_bytes);
             int offset = ByteToInt(first_pointer);
             Boolean end = false;
-
-            int bitmap_byte = (field_order - 1) / 8;
-            int bitmap_bit = (field_order - 1) % 8;
-
             while (!end) {
+                Record r = new Record();
                 // record 위치 파악
                 int block_number = offset / Global_Variables.Block_Size;
                 int block_offset = offset % Global_Variables.Block_Size;
@@ -414,28 +413,20 @@ public class IO_Manager {
                 System.arraycopy(blocks[block_number], block_offset, bitmap, 0, Global_Variables.bitmap_bytes);
 
                 int record_length = get_record_length(bitmap, field_lengths);
-                // record의 해당 부분이 null이면 다음 레코드로 건너뜀. 아니어야 column과 비교
-                if ((bitmap[bitmap_byte] & (1 << (7 - bitmap_bit))) == 0) {
-                    int temp_offset = offset + Global_Variables.bitmap_bytes;
-                    for (int i = 0; i < field_order - 1; i++) {
-                        if ((bitmap[i / 8] & (1 << (7 - i % 8))) == 0) temp_offset += field_lengths[i];
-                    }
-                    byte[] record_column = new byte[field_lengths[field_order - 1]];
-                    System.arraycopy(blocks[block_number], temp_offset % Global_Variables.Block_Size, record_column, 0, field_lengths[field_order - 1]);
-                    byte[] record = new byte[record_length];
-                    System.arraycopy(blocks[block_number], offset % Global_Variables.Block_Size, record, 0, record_length);
+                byte[] record = new byte[record_length];
+                System.arraycopy(blocks[block_number], offset % Global_Variables.Block_Size, record, 0, record_length);
 
-                    int l = 0, k = 0;
-                    String s = "";
-                    for(int i = Global_Variables.bitmap_bytes ; i < record_length - Global_Variables.pointer_bytes ; i++){
-                        s += (char)record[i];
-                        if(k == field_lengths[l] - 1) { System.out.print(String.format("%-25s", s)); l++; k = 0; s = ""; }
-                        else{ k++; }
-                        if((bitmap[l / 8] & (1 << (7 - l % 8))) != 0) {System.out.print(String.format("%-25s", "null")); l++; k = 0; s = "";}
-                    }
-                    if(l < field_lengths.length) for(int i = 0 ; i < field_lengths.length - l ; i++) System.out.print(String.format("%-25s", null));
-                    System.out.println();
+                int l = 0, k = 0; // l : field 번호    k : field 하나하나마다 초기화되는 변수
+                String s = "";
+                for(int i = Global_Variables.bitmap_bytes ; i < record_length - Global_Variables.pointer_bytes ; i++){
+                    s += (char)record[i];
+                    if(k == field_lengths[l] - 1) { r.addField(s.getBytes()); l++; k = 0; s = ""; }
+                    else{ k++; }
+                    if((bitmap[l / 8] & (1 << (7 - l % 8))) != 0) { r.addField("null".getBytes()); l++; k = 0; s = "";}
                 }
+                if(l < field_lengths.length) for(int i = 0 ; i < field_lengths.length - l ; i++) r.addField("null".getBytes());
+
+                records.add(r);
 
                 offset += record_length - Global_Variables.pointer_bytes;
                 byte[] next_record_offset = new byte[Global_Variables.pointer_bytes];
@@ -445,10 +436,14 @@ public class IO_Manager {
                 if(ByteToInt(next_record_offset) == 0) break;
                 else offset = ByteToInt(next_record_offset);
             }
+
         }
         catch (Exception e) {
-            System.out.println("예상치 못한 에러 발생");
+            System.out.println("예상치 못한 에러 발생: " + e);
+            e.printStackTrace();
         }
+
+        return records;
     }
 
     public void find_fields(int order, String path, int[] field_lengths, int offset){
